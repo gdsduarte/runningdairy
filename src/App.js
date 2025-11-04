@@ -50,58 +50,64 @@ function App() {
 
   return (
     <div className="App">
-      <header className="app-header">
-        <div className="header-content">
-          <div className="logo">
-            <span className="logo-icon">🏃</span>
-            <h1>Running Events Calendar</h1>
+      <div className={!user ? 'app-content-blurred' : ''}>
+        <header className="app-header">
+          <div className="header-content">
+            <div className="logo">
+              <span className="logo-icon">🏃</span>
+              <h1>Running Events Calendar</h1>
+            </div>
+            
+            <nav className="nav-buttons">
+              {user ? (
+                <>
+                  <div className="user-menu">
+                    <button 
+                      className="btn btn-profile"
+                      onClick={() => setShowProfile(true)}
+                    >
+                      👤 Profile
+                    </button>
+                    <button 
+                      className="btn btn-signout"
+                      onClick={handleSignOut}
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button 
+                  className="btn btn-signin"
+                  onClick={() => setShowAuth(true)}
+                >
+                  Sign In
+                </button>
+              )}
+            </nav>
           </div>
-          
-          <nav className="nav-buttons">
-            {user ? (
-              <>
-                <div className="user-menu">
-                  <button 
-                    className="btn btn-profile"
-                    onClick={() => setShowProfile(true)}
-                  >
-                    👤 Profile
-                  </button>
-                  <button 
-                    className="btn btn-signout"
-                    onClick={handleSignOut}
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </>
-            ) : (
-              <button 
-                className="btn btn-signin"
-                onClick={() => setShowAuth(true)}
-              >
-                Sign In
-              </button>
-            )}
-          </nav>
-        </div>
-      </header>
+        </header>
 
-      <main className="main-content">
-        <div className="container">
-          <EventCalendar 
-            onEventClick={handleEventClick}
-            user={user}
-            onAddEvent={() => setShowAddEvent(true)}
-          />
-        </div>
-      </main>
+        <main className="main-content">
+          <div className="container">
+            <EventCalendar 
+              onEventClick={handleEventClick}
+              user={user}
+              onAddEvent={() => setShowAddEvent(true)}
+            />
+          </div>
+        </main>
 
-      <footer className="app-footer">
-        <p>© 2025 Running Events Calendar. Built for runners, by runners. 🏃‍♂️🏃‍♀️</p>
-      </footer>
+        <footer className="app-footer">
+          <p>© 2025 Running Events Calendar. Built for runners, by runners. 🏃‍♂️🏃‍♀️</p>
+        </footer>
+      </div>
 
-      {showAuth && (
+      {!user && (
+        <Auth onClose={null} />
+      )}
+
+      {showAuth && user && (
         <Auth onClose={() => setShowAuth(false)} />
       )}
 

@@ -55,7 +55,9 @@ function Auth({ onClose }) {
   return (
     <div className="auth-modal">
       <div className="auth-container">
-        <button className="close-btn" onClick={onClose}>×</button>
+        {onClose && (
+          <button className="close-btn" onClick={onClose}>×</button>
+        )}
         
         <h2 className="auth-title">
           <span className="running-icon">🏃</span>

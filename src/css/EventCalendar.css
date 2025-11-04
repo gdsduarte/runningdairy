@@ -409,12 +409,33 @@
   align-items: center;
   padding: 20px;
   border-bottom: 1px solid #f0f0f0;
+  gap: 12px;
 }
 
 .modal-header h3 {
   margin: 0;
   color: #2c3e50;
   font-size: 18px;
+  flex: 1;
+}
+
+.btn-add-event-modal {
+  background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(255, 107, 53, 0.2);
+}
+
+.btn-add-event-modal:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
 }
 
 .close-modal {
@@ -427,6 +448,7 @@
   width: 32px;
   height: 32px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .modal-events-list {
@@ -480,6 +502,44 @@
   font-size: 24px;
   display: flex;
   align-items: center;
+}
+
+/* Empty state in modal */
+.no-events-modal {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.no-events-icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.no-events-modal p {
+  margin: 0 0 24px 0;
+  font-size: 15px;
+  color: #666;
+}
+
+.btn-create-event-inline {
+  background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+}
+
+.btn-create-event-inline:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
 }
 
 /* Desktop styles */

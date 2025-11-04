@@ -73,8 +73,8 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
     // On desktop, update the yellow card
     setSelectedDay(day);
 
-    // On mobile, show the modal if there are events
-    if (window.innerWidth <= 768 && dayEvents.length > 0) {
+    // On mobile, always show the modal when clicking a day
+    if (window.innerWidth <= 768) {
       setMobileSelectedDay({ day, events: dayEvents });
       setShowDayEvents(true);
     }
@@ -419,6 +419,17 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                 {currentMonth.toLocaleDateString("en-US", { month: "long" })}{" "}
                 {mobileSelectedDay.day}
               </h3>
+              {user && mobileSelectedDay.events.length > 0 && (
+                <button
+                  className="btn-add-event-modal"
+                  onClick={() => {
+                    setShowDayEvents(false);
+                    onAddEvent();
+                  }}
+                >
+                  + Add Event
+                </button>
+              )}
               <button
                 className="close-modal"
                 onClick={() => setShowDayEvents(false)}
@@ -427,31 +438,49 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               </button>
             </div>
             <div className="modal-events-list">
-              {mobileSelectedDay.events.map((event) => (
-                <div
-                  key={event.id}
-                  className="modal-event-item"
-                  onClick={() => {
-                    setShowDayEvents(false);
-                    onEventClick(event);
-                  }}
-                >
-                  <div className="event-time">
-                    {event.date.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                  <div className="event-item-info">
-                    <h4>{event.name}</h4>
-                    <div className="event-item-meta">
-                      <span>📍 {event.location}</span>
-                      <span>🏃 {event.distance}</span>
+              {mobileSelectedDay.events.length > 0 ? (
+                mobileSelectedDay.events.map((event) => (
+                  <div
+                    key={event.id}
+                    className="modal-event-item"
+                    onClick={() => {
+                      setShowDayEvents(false);
+                      onEventClick(event);
+                    }}
+                  >
+                    <div className="event-time">
+                      {event.date.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </div>
+                    <div className="event-item-info">
+                      <h4>{event.name}</h4>
+                      <div className="event-item-meta">
+                        <span>📍 {event.location}</span>
+                        <span>🏃 {event.distance}</span>
+                      </div>
+                    </div>
+                    <div className="event-arrow">›</div>
                   </div>
-                  <div className="event-arrow">›</div>
+                ))
+              ) : (
+                <div className="no-events-modal">
+                  <span className="no-events-icon">📅</span>
+                  <p>No events scheduled for this day</p>
+                  {user && (
+                    <button
+                      className="btn-create-event-inline"
+                      onClick={() => {
+                        setShowDayEvents(false);
+                        onAddEvent();
+                      }}
+                    >
+                      Create an Event
+                    </button>
+                  )}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

@@ -150,6 +150,13 @@
   opacity: 0.9;
 }
 
+/* Blur Effect for Non-Authenticated Users */
+.app-content-blurred {
+  filter: blur(10px);
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Loading Screen */
 .loading-screen {
   min-height: 100vh;
