@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Events collection
+    match /events/{eventId} {
+      // Anyone can read events
+      allow read: if true;
+      
+      // Only authenticated users can create events
+      allow create: if request.auth != null;
+      
+      // Only authenticated users can update events (for RSVP)
+      allow update: if request.auth != null;
+      
+      // Only authenticated users can delete events
+      allow delete: if request.auth != null;
+    }
+  }
+}

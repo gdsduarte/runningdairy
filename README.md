@@ -1,53 +1,189 @@
-# Getting Started with Create React App
+# Running Events Calendar 🏃
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern, responsive web application for running clubs to manage and share running events. Built with React and Firebase.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- 📅 **Calendar View**: Visual month and list views of running events
+- 🔐 **Authentication**: Email/password and Google sign-in
+- ➕ **Event Management**: Admins can add running events with details
+- 👥 **RSVP System**: Users can sign up for events and see attendees
+- 📱 **Responsive Design**: Works seamlessly on desktop and mobile
+- 🔥 **Real-time Updates**: Instant synchronization using Firebase Firestore
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Frontend**: React 19.2
+- **Backend**: Firebase
+  - Authentication (Email/Password + Google)
+  - Firestore Database
+  - Hosting
+- **Styling**: Custom CSS with running-themed gradients
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Prerequisites
 
-### `npm test`
+- Node.js (v14 or higher)
+- npm or yarn
+- Firebase account
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Setup Instructions
 
-### `npm run build`
+### 1. Install Dependencies
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+npm install
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 2. Set Up Firebase
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Create a new project
+3. Enable the following services:
+   - **Authentication**: Enable Email/Password and Google sign-in providers
+   - **Firestore Database**: Create a database in production mode
+   - **Hosting**: Set up hosting (optional)
 
-### `npm run eject`
+4. Get your Firebase configuration:
+   - Go to Project Settings > General
+   - Scroll down to "Your apps" section
+   - Click on the web icon (</>)
+   - Copy the config object
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 3. Configure Environment Variables
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. Copy the `.env.example` file to `.env`:
+   ```bash
+   copy .env.example .env
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+2. Edit `.env` and add your Firebase configuration:
+   ```env
+   REACT_APP_FIREBASE_API_KEY=your_api_key_here
+   REACT_APP_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+   REACT_APP_FIREBASE_PROJECT_ID=your_project_id
+   REACT_APP_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   REACT_APP_FIREBASE_APP_ID=your_app_id
+   ```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 4. Set Up Firestore Security Rules
 
-## Learn More
+The `firestore.rules` file is already configured. In Firebase Console, go to Firestore Database > Rules and publish the rules from the file.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 5. Run the Application
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+npm start
+```
 
-### Code Splitting
+The app will open at [http://localhost:3000](http://localhost:3000)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Usage
+
+### For Users
+
+1. **Sign Up/Sign In**: Click "Sign In" in the header to create an account or log in
+2. **View Events**: Browse events in calendar or list view
+3. **Event Details**: Click on any event to see full details
+4. **RSVP**: Click "RSVP" on an event to mark your attendance
+5. **See Attendees**: View who else is attending each event
+
+### For Admins
+
+1. **Add Events**: After signing in, click "+ Add Event"
+2. **Fill Event Details**:
+   - Event Name
+   - Location
+   - Distance (5K, 10K, Marathon, etc.)
+   - Date and Time
+   - Registration Link
+   - Description (optional)
+3. **Submit**: Click "Add Event" to publish
+
+## Firebase Hosting Deployment
+
+1. Install Firebase CLI:
+   ```bash
+   npm install -g firebase-tools
+   ```
+
+2. Login to Firebase:
+   ```bash
+   firebase login
+   ```
+
+3. Initialize Firebase:
+   ```bash
+   firebase init
+   ```
+   - Select "Hosting"
+   - Choose your Firebase project
+   - Set public directory to: `build`
+   - Configure as single-page app: `Yes`
+
+4. Build the app:
+   ```bash
+   npm run build
+   ```
+
+5. Deploy:
+   ```bash
+   firebase deploy
+   ```
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── Auth.js              # Authentication modal
+│   ├── Auth.css
+│   ├── AddEvent.js          # Event creation form
+│   ├── AddEvent.css
+│   ├── EventCalendar.js     # Calendar display
+│   ├── EventCalendar.css
+│   ├── EventDetails.js      # Event details & RSVP
+│   └── EventDetails.css
+├── firebase.js              # Firebase configuration
+├── App.js                   # Main app component
+├── App.css
+├── index.js
+└── index.css
+```
+
+## Color Scheme
+
+The app uses a running-themed color palette:
+- Primary Orange: `#FF6B35`
+- Secondary Orange: `#F7931E`
+- Dark Blue: `#2c3e50`
+- Light Background: `#f5f7fa`
+
+## Browser Support
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+- Mobile browsers (iOS Safari, Chrome Mobile)
+
+## Troubleshooting
+
+### Firebase Authentication Issues
+- Ensure Email/Password and Google providers are enabled in Firebase Console
+- Check that your domain is added to authorized domains in Firebase Authentication settings
+
+### Firestore Permission Errors
+- Verify Firestore security rules are properly set
+- Check that users are authenticated before performing write operations
+
+### Build Errors
+- Clear npm cache: `npm cache clean --force`
+- Delete node_modules and reinstall: `rm -rf node_modules && npm install`
+
+---
+
+Built with ❤️ for the running community 🏃‍♂️🏃‍♀️
 
 ### Analyzing the Bundle Size
 
