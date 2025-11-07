@@ -381,6 +381,7 @@
   display: flex;
   align-items: flex-end;
   animation: fadeIn 0.2s ease;
+  margin-bottom: 60px;
 }
 
 @keyframes fadeIn {

@@ -86,19 +86,16 @@ function Profile({ user, onClose }) {
 
   if (loading) {
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="profile-container" onClick={(e) => e.stopPropagation()}>
-          <div className="loading-spinner"></div>
-          <p>Loading profile...</p>
-        </div>
+      <div className="profile-container">
+        <div className="loading-spinner"></div>
+        <p>Loading profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="profile-container" onClick={(e) => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose}>×</button>
+    <div className="profile-container">
+      <button className="close-btn" onClick={onClose}>×</button>
         
         {/* Profile Header */}
         <div className="profile-header">
@@ -304,7 +301,6 @@ function Profile({ user, onClose }) {
           )}
         </div>
       </div>
-    </div>
   );
 }
 
