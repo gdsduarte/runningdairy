@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
-import { createEvent } from '../services';
+import { updateEvent } from '../services';
 import '../css/AddEvent.css';
 
-function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
-  // Format the selected date or use today
-  const defaultDate = selectedDate || new Date();
-  const dateString = defaultDate.toISOString().split('T')[0];
+function EditEvent({ event, onClose, onEventUpdated }) {
+  const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
   
   const [eventData, setEventData] = useState({
-    name: '',
-    location: '',
-    distance: '',
-    signupLink: '',
-    date: dateString,
-    time: '',
-    description: ''
+    name: event.name || '',
+    location: event.location || '',
+    distance: event.distance || '',
+    signupLink: event.signupLink || '',
+    date: eventDate.toISOString().split('T')[0],
+    time: eventDate.toTimeString().slice(0, 5),
+    description: event.description || ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,27 +33,26 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
     try {
       const eventDateTime = new Date(`${eventData.date}T${eventData.time}`);
       
-      const newEvent = {
+      const updatedEvent = {
         name: eventData.name,
         location: eventData.location,
         distance: eventData.distance,
         signupLink: eventData.signupLink,
         description: eventData.description,
-        date: eventDateTime,
-        attendees: []
+        date: eventDateTime
       };
 
-      const result = await createEvent(newEvent, user.uid, user.email);
+      const result = await updateEvent(event.id, updatedEvent);
       
       if (result.success) {
-        onEventAdded?.();
+        onEventUpdated?.();
         onClose();
       } else {
         setError(result.error);
       }
     } catch (err) {
-      console.error('Error adding event:', err);
-      setError('Failed to add event. Please try again.');
+      console.error('Error updating event:', err);
+      setError('Failed to update event. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -67,8 +64,8 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
         <button className="close-btn" onClick={onClose}>×</button>
         
         <h2 className="modal-title">
-          <span className="icon">📅</span>
-          Add Running Event
+          <span className="icon">✏️</span>
+          Edit Event
         </h2>
 
         <form onSubmit={handleSubmit} className="event-form">
@@ -127,7 +124,6 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
                 value={eventData.date}
                 onChange={handleChange}
                 required
-                min={new Date().toISOString().split('T')[0]}
               />
             </div>
 
@@ -145,12 +141,13 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Registration Link</label>
+              <label>Registration Link *</label>
               <input
                 type="url"
                 name="signupLink"
                 value={eventData.signupLink}
                 onChange={handleChange}
+                required
                 placeholder="https://example.com/register"
               />
             </div>
@@ -185,7 +182,7 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
               className="btn btn-primary"
               disabled={loading}
             >
-              {loading ? 'Adding...' : 'Add Event'}
+              {loading ? 'Updating...' : 'Update Event'}
             </button>
           </div>
         </form>
@@ -194,4 +191,4 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
   );
 }
 
-export default AddEvent;
+export default EditEvent;

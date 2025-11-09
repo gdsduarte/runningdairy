@@ -2,18 +2,43 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone can read user profiles (for displaying names, etc.)
+      allow read: if true;
+      
+      // Users can only write their own profile
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // Prevent users from changing their own role (only admins can do this manually in console)
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+    }
+    
+    // Events collection
+    match /events/{eventId} {
+      // Anyone can read events
+      allow read: if true;
+      
+      // Authenticated users can create events
+      allow create: if request.auth != null;
+      
+      // Users can update events if they are the creator or an admin
+      allow update: if request.auth != null 
+                    && (resource.data.createdBy == request.auth.uid 
+                        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      
+      // Users can delete events if they are the creator or an admin
+      allow delete: if request.auth != null 
+                    && (resource.data.createdBy == request.auth.uid 
+                        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+    
+    // Default deny all other access
     match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 12, 3);
+      allow read, write: if false;
     }
   }
 }

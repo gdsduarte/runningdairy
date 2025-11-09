@@ -3,9 +3,11 @@ import {
   collection, 
   query, 
   orderBy, 
+  where,
   onSnapshot, 
   addDoc, 
   doc, 
+  getDoc,
   updateDoc, 
   deleteDoc,
   arrayUnion,
@@ -14,7 +16,7 @@ import {
 } from 'firebase/firestore';
 
 // Subscribe to all events with real-time updates
-export const subscribeToEvents = (callback) => {
+export const subscribeToEvents = (callback, errorCallback) => {
   const q = query(collection(db, 'events'), orderBy('date', 'asc'));
   
   const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -24,7 +26,32 @@ export const subscribeToEvents = (callback) => {
       date: doc.data().date.toDate()
     }));
     callback(eventsData);
-  });
+  }, errorCallback);
+
+  return unsubscribe;
+};
+
+// Subscribe to events for a specific month with real-time updates
+export const subscribeToEventsForMonth = (year, month, callback, errorCallback) => {
+  // Create start and end dates for the month
+  const startDate = new Date(year, month, 1);
+  const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
+  
+  const q = query(
+    collection(db, 'events'),
+    where('date', '>=', Timestamp.fromDate(startDate)),
+    where('date', '<=', Timestamp.fromDate(endDate)),
+    orderBy('date', 'asc')
+  );
+  
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const eventsData = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      date: doc.data().date.toDate()
+    }));
+    callback(eventsData);
+  }, errorCallback);
 
   return unsubscribe;
 };
@@ -47,12 +74,14 @@ export const subscribeToEvent = (eventId, callback) => {
 };
 
 // Create a new event
-export const createEvent = async (eventData) => {
+export const createEvent = async (eventData, userId, userEmail) => {
   try {
     const docRef = await addDoc(collection(db, 'events'), {
       ...eventData,
       date: Timestamp.fromDate(eventData.date),
       attendees: [],
+      createdBy: userId,
+      createdByEmail: userEmail,
       createdAt: Timestamp.now()
     });
     return { success: true, id: docRef.id };
@@ -97,11 +126,17 @@ export const rsvpToEvent = async (eventId, user, shouldAttend, currentAttendees)
     const eventRef = doc(db, 'events', eventId);
 
     if (shouldAttend) {
+      // Get user profile to include club name
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      
       // Add to attendees
       const attendeeData = {
         uid: user.uid,
         email: user.email,
-        displayName: user.displayName || user.email.split('@')[0],
+        displayName: userData.displayName || user.displayName || user.email.split('@')[0],
+        clubName: userData.clubName || '',
         joinedAt: new Date().toISOString(),
       };
       

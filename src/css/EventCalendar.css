@@ -265,6 +265,8 @@
 
 .event-card {
   display: flex;
+  flex-direction: row;
+  align-items: center;
   gap: 16px;
   padding: 16px;
   background: linear-gradient(135deg, #fff5f0 0%, #ffeee6 100%);
@@ -288,52 +290,56 @@
 .event-date-badge {
   background: white;
   border-radius: 4px;
-  padding: 10px;
+  padding: 8px 10px;
   text-align: center;
-  min-width: 60px;
+  min-width: 50px;
+  flex-shrink: 0;
   height: fit-content;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .event-date-badge .month {
-  font-size: 12px;
+  font-size: 10px;
   color: #FF6B35;
   font-weight: 600;
   text-transform: uppercase;
+  line-height: 1;
 }
 
 .event-date-badge .day {
-  font-size: 28px;
+  font-size: 22px;
   color: #2c3e50;
   font-weight: 700;
   line-height: 1;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .event-info {
   flex: 1;
+  min-width: 0;
 }
 
 .event-info h4 {
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   color: #2c3e50;
-  font-size: 20px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .event-details {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 8px;
-  font-size: 14px;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 13px;
   color: #666;
 }
 
 .event-attendees {
-  font-size: 14px;
+  font-size: 13px;
   color: #FF6B35;
   font-weight: 600;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .no-events {
@@ -523,6 +529,13 @@
   margin: 0 0 24px 0;
   font-size: 15px;
   color: #666;
+}
+
+.past-disabled-message {
+  color: #999;
+  font-size: 13px;
+  margin-top: 12px;
+  font-style: italic;
 }
 
 .btn-create-event-inline {
@@ -916,17 +929,39 @@
   }
 
   .event-card {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
     gap: 12px;
+    padding: 12px;
   }
 
   .event-date-badge {
-    align-self: flex-start;
+    min-width: 45px;
+    padding: 6px 8px;
+  }
+
+  .event-date-badge .month {
+    font-size: 9px;
+  }
+
+  .event-date-badge .day {
+    font-size: 20px;
+  }
+
+  .event-info h4 {
+    font-size: 15px;
+    margin-bottom: 6px;
   }
 
   .event-details {
-    flex-direction: column;
-    gap: 8px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 12px;
+  }
+
+  .event-attendees {
+    font-size: 12px;
   }
 
   .btn-add-event {

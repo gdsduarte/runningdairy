@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { subscribeToEvent, rsvpToEvent } from "../services";
+import { subscribeToEvent, rsvpToEvent, deleteEvent, canEditEvent } from "../services";
 import "../css/EventDetails.css";
 
-function EventDetails({ event, onClose, user }) {
+function EventDetails({ event, onClose, user, onEditEvent }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [liveEvent, setLiveEvent] = useState(event);
+  const [canEdit, setCanEdit] = useState(false);
 
   // Real-time listener for event updates
   useEffect(() => {
@@ -20,12 +21,44 @@ function EventDetails({ event, onClose, user }) {
     return () => unsubscribe();
   }, [event?.id]);
 
+  // Check edit permissions
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (user && liveEvent) {
+        const hasPermission = await canEditEvent(liveEvent, user);
+        setCanEdit(hasPermission);
+      }
+    };
+    checkPermissions();
+  }, [user, liveEvent]);
+
   if (!liveEvent) return null;
 
   const isAttending =
     user && liveEvent.attendees?.some((attendee) => attendee.uid === user.uid);
 
   const isPastEvent = liveEvent.date < new Date();
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await deleteEvent(liveEvent.id);
+      if (result.success) {
+        onClose();
+      } else {
+        setError(result.error || 'Failed to delete event');
+      }
+    } catch (err) {
+      console.error('Error deleting event:', err);
+      setError('Failed to delete event. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRSVP = async () => {
     if (!user) {
@@ -75,11 +108,11 @@ function EventDetails({ event, onClose, user }) {
     <div className="modal-overlay">
       <div className="event-details-container">
         <div className="event-header">
+          {/* <div className="event-icon-large">🏃</div> */}
+          <h2>{liveEvent.name}</h2>
           <button className="close-btn" onClick={onClose}>
             ×
           </button>
-          {/* <div className="event-icon-large">🏃</div> */}
-          <h2>{liveEvent.name}</h2>
           {isPastEvent && <div className="past-badge">Past Event</div>}
         </div>
 
@@ -129,21 +162,29 @@ function EventDetails({ event, onClose, user }) {
             <h3>👥 Attendees ({liveEvent.attendees?.length || 0})</h3>
             {liveEvent.attendees && liveEvent.attendees.length > 0 ? (
               <div className="attendees-list">
-                {liveEvent.attendees.map((attendee, index) => (
-                  <div key={index} className="attendee-card">
-                    <div className="attendee-avatar">
-                      {attendee.displayName?.charAt(0).toUpperCase() || "👤"}
-                    </div>
-                    <div className="attendee-info">
-                      <div className="attendee-name">
-                        {attendee.displayName}
+                {liveEvent.attendees.map((attendee, index) => {
+                  const isCurrentUser = user && user.uid === attendee.uid;
+                  return (
+                    <div 
+                      key={index} 
+                      className={`attendee-card ${isCurrentUser ? 'current-user' : ''}`}
+                    >
+                      <div className="attendee-avatar">
+                        {attendee.displayName?.charAt(0).toUpperCase() || "👤"}
                       </div>
-                      {user && user.uid === attendee.uid && (
-                        <span className="you-badge">You</span>
-                      )}
+                      <div className="attendee-info">
+                        <div className="attendee-name">
+                          {attendee.displayName}
+                        </div>
+                        {attendee.clubName && (
+                          <div className="attendee-club">
+                            🏅 {attendee.clubName}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="no-attendees">
@@ -153,6 +194,25 @@ function EventDetails({ event, onClose, user }) {
           </div>
 
           {error && <div className="error-message">{error}</div>}
+
+          {canEdit && (
+            <div className="admin-actions">
+              <button
+                onClick={() => onEditEvent(liveEvent)}
+                className="btn btn-edit"
+                disabled={loading}
+              >
+                ✏️ Edit Event
+              </button>
+              <button
+                onClick={handleDelete}
+                className="btn btn-delete"
+                disabled={loading}
+              >
+                🗑️ Delete Event
+              </button>
+            </div>
+          )}
 
           <div className="action-buttons">
             {!isPastEvent && (

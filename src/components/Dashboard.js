@@ -1,19 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { subscribeToEvents } from '../services';
+import React from 'react';
+import { useSelector } from 'react-redux';
 import '../css/Dashboard.css';
 
 function Dashboard({ user, onClose, onEventClick, onAddEvent }) {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = subscribeToEvents((eventsData) => {
-      setEvents(eventsData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  // Get events from Redux store
+  const events = useSelector((state) => state.events.list);
+  const loading = useSelector((state) => state.events.loading);
 
   // Filter events
   const now = new Date();
@@ -22,19 +14,20 @@ function Dashboard({ user, onClose, onEventClick, onAddEvent }) {
     event.attendees?.some(attendee => attendee.uid === user.uid)
   );
   const myCreatedEvents = events.filter(event => 
-    event.createdBy === user.uid
+    event.createdBy === user.uid &&
+    event.date >= now
   );
 
   // Get next 3 upcoming events
   const nextEvents = upcomingEvents.slice(0, 3);
 
-  const formatDate = (date) => {
+  /* const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
     });
-  };
+  }; */
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', {
@@ -45,12 +38,12 @@ function Dashboard({ user, onClose, onEventClick, onAddEvent }) {
 
   if (loading) {
     return (
-      <div className="dashboard-modal">
+      <div className="dashboard-container">
         <div className="dashboard-content">
-          <div className="dashboard-header">
+          {/* <div className="dashboard-header">
             <h2>Dashboard</h2>
             <button className="close-btn" onClick={onClose}>×</button>
-          </div>
+          </div> */}
           <div className="loading-container">
             <div className="loading-spinner"></div>
             <p>Loading dashboard...</p>
@@ -61,13 +54,8 @@ function Dashboard({ user, onClose, onEventClick, onAddEvent }) {
   }
 
   return (
-    <div className="dashboard-modal">
+    <div className="dashboard-container">
       <div className="dashboard-content">
-        <div className="dashboard-header">
-          <h2>📊 Dashboard</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
-        </div>
-
         <div className="dashboard-body">
           {/* Quick Stats */}
           <div className="stats-grid">

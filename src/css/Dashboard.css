@@ -1,11 +1,20 @@
-/* Dashboard View */
-.dashboard-modal {
-  background: white;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+.dashboard-container {
+  border-radius: 4px;
+  max-width: 900px;
+  max-height: calc(100vh - 40px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dashboard-content {
@@ -56,7 +65,7 @@
   background: linear-gradient(135deg, #f7d31d 0%, #edc300 100%);
   color: white;
   padding: 20px;
-  border-radius: 12px;
+  border-radius: 4px;
   text-align: center;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   transition: transform 0.3s;
@@ -86,11 +95,11 @@
 /* Add Event Button */
 .btn-add-event-dashboard {
   width: 100%;
-  background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
   color: white;
   border: none;
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -131,7 +140,7 @@
   gap: 16px;
   padding: 16px;
   background: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s;
   border: 2px solid transparent;
@@ -154,7 +163,7 @@
 
 .event-date-badge {
   background: white;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 12px;
   text-align: center;
   min-width: 60px;
@@ -254,8 +263,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Desktop Modal View */
@@ -277,12 +290,12 @@
   .dashboard-content {
     max-width: 900px;
     max-height: 90vh;
-    border-radius: 12px;
+    border-radius: 4px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   }
 
   .dashboard-header {
-    border-radius: 12px 12px 0 0;
+    border-radius: 4px 4px 0 0;
   }
 
   .close-btn {

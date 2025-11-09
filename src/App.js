@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { subscribeToAuthState, signOut as authSignOut } from './services';
+import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { signOut as authSignOut } from './services';
+import { useAuthListener } from './store/hooks/useAuthListener';
+import { useEventsListener } from './store/hooks/useEventsListener';
 import Auth from './components/Auth';
 import AddEvent from './components/AddEvent';
+import EditEvent from './components/EditEvent';
 import EventCalendar from './components/EventCalendar';
 import EventDetails from './components/EventDetails';
 import Profile from './components/Profile';
@@ -9,21 +13,21 @@ import Dashboard from './components/Dashboard';
 import './css/App.css';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Initialize Redux listeners
+  useAuthListener();
+  useEventsListener();
+  
+  // Get auth state from Redux
+  const user = useSelector((state) => state.auth.user);
+  const loading = useSelector((state) => state.auth.loading);
+  
   const [showAuth, setShowAuth] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [editingEvent, setEditingEvent] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [currentView, setCurrentView] = useState('calendar'); // 'calendar', 'dashboard', or 'profile'
-
-  useEffect(() => {
-    const unsubscribe = subscribeToAuthState((currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
   const handleSignOut = async () => {
     // Confirm before signing out
@@ -44,6 +48,27 @@ function App() {
     setSelectedEvent(event);
   };
 
+  const handleEditEvent = (event) => {
+    setSelectedEvent(null);
+    setEditingEvent(event);
+  };
+
+  const handleAddEvent = (date) => {
+    if (date) {
+      const d = new Date(date);
+      d.setHours(0,0,0,0);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      if (d < today) {
+        alert('Cannot add events to past dates');
+        return;
+      }
+    }
+
+    setSelectedDate(date);
+    setShowAddEvent(true);
+  };
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -56,6 +81,54 @@ function App() {
   return (
     <div className="App">
       <div className={!user ? 'app-content-blurred' : ''}>
+        {/* Desktop Sidebar Navigation */}
+        {user && (
+          <nav className={`desktop-sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
+            <div className="sidebar-content">
+              <button 
+                className={`sidebar-item ${currentView === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setCurrentView('dashboard')}
+                title="Dashboard"
+              >
+                <span className="sidebar-icon">📊</span>
+                <span className="sidebar-label">Dashboard</span>
+              </button>
+              <button 
+                className={`sidebar-item ${currentView === 'calendar' ? 'active' : ''}`}
+                onClick={() => setCurrentView('calendar')}
+                title="Calendar"
+              >
+                <span className="sidebar-icon">📅</span>
+                <span className="sidebar-label">Calendar</span>
+              </button>
+              <button 
+                className={`sidebar-item ${currentView === 'profile' ? 'active' : ''}`}
+                onClick={() => setCurrentView('profile')}
+                title="Profile"
+              >
+                <span className="sidebar-icon">👤</span>
+                <span className="sidebar-label">Profile</span>
+              </button>
+              <button 
+                className="sidebar-item"
+                onClick={handleSignOut}
+                title="Sign Out"
+              >
+                <span className="sidebar-icon">🚪</span>
+                <span className="sidebar-label">Logout</span>
+              </button>
+            </div>
+            
+            <button 
+              className="sidebar-toggle"
+              onClick={() => setSidebarExpanded(!sidebarExpanded)}
+              title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              <span className="toggle-icon">{sidebarExpanded ? '◀' : '▶'}</span>
+            </button>
+          </nav>
+        )}
+
         <header className="app-header">
           <div className="header-content">
             <div className="logo">
@@ -99,7 +172,7 @@ function App() {
               <EventCalendar 
                 onEventClick={handleEventClick}
                 user={user}
-                onAddEvent={() => setShowAddEvent(true)}
+                onAddEvent={handleAddEvent}
               />
             )}
             {currentView === 'dashboard' && user && (
@@ -107,7 +180,7 @@ function App() {
                 user={user}
                 onClose={() => setCurrentView('calendar')}
                 onEventClick={handleEventClick}
-                onAddEvent={() => setShowAddEvent(true)}
+                onAddEvent={handleAddEvent}
               />
             )}
             {currentView === 'profile' && user && (
@@ -172,8 +245,24 @@ function App() {
 
       {showAddEvent && user && (
         <AddEvent 
-          onClose={() => setShowAddEvent(false)}
+          user={user}
+          selectedDate={selectedDate}
+          onClose={() => {
+            setShowAddEvent(false);
+            setSelectedDate(null);
+          }}
           onEventAdded={() => {
+            // Event will be automatically updated via Firestore listener
+          }}
+        />
+      )}
+
+      {editingEvent && user && (
+        <EditEvent 
+          event={editingEvent}
+          onClose={() => setEditingEvent(null)}
+          onEventUpdated={() => {
+            setEditingEvent(null);
             // Event will be automatically updated via Firestore listener
           }}
         />
@@ -184,6 +273,7 @@ function App() {
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
           user={user}
+          onEditEvent={handleEditEvent}
         />
       )}
     </div>

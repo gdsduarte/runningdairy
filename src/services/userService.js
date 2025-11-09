@@ -1,12 +1,51 @@
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
 import { 
   doc, 
   setDoc, 
+  getDoc,
   onSnapshot, 
   collection, 
   query, 
   orderBy 
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+
+// Upload image to Firebase Storage
+export const uploadProfileImage = async (userId, file, imageType) => {
+  try {
+    const timestamp = Date.now();
+    const fileExt = file.name.split('.').pop();
+    const filePath = `users/${userId}/${imageType}_${timestamp}.${fileExt}`;
+    const storageRef = ref(storage, filePath);
+    
+    // Upload file
+    await uploadBytes(storageRef, file);
+    
+    // Get download URL
+    const downloadURL = await getDownloadURL(storageRef);
+    
+    return { success: true, url: downloadURL, path: filePath };
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Delete image from Firebase Storage
+export const deleteProfileImage = async (imagePath) => {
+  try {
+    if (!imagePath) return { success: true };
+    
+    const storageRef = ref(storage, imagePath);
+    await deleteObject(storageRef);
+    
+    return { success: true };
+  } catch (error) {
+    // Ignore errors if file doesn't exist
+    console.warn('Error deleting image:', error);
+    return { success: true };
+  }
+};
 
 // Subscribe to user profile with real-time updates
 export const subscribeToUserProfile = (userId, callback) => {
@@ -31,11 +70,15 @@ export const subscribeToUserEvents = (userId, callback) => {
   );
   
   const unsubscribe = onSnapshot(eventsQuery, (snapshot) => {
-    const events = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      date: doc.data().date.toDate()
-    }));
+    const events = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        date: data.date?.toDate ? data.date.toDate() : data.date,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
+      };
+    });
 
     // Filter events where user is attending
     const userEvents = events.filter(event => 
@@ -51,7 +94,8 @@ export const subscribeToUserEvents = (userId, callback) => {
 // Update user profile
 export const updateUserProfile = async (userId, profileData) => {
   try {
-    await setDoc(doc(db, 'users', userId), profileData);
+    // Merge profile fields so we don't overwrite other system fields
+    await setDoc(doc(db, 'users', userId), profileData, { merge: true });
     return { success: true };
   } catch (error) {
     console.error('Error updating profile:', error);
@@ -133,4 +177,49 @@ export const calculateUserBadges = (pastEvents) => {
   }
 
   return earnedBadges;
+};
+
+// Get user data from Firestore
+export const getUserData = async (userId) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      return { success: true, data: userDoc.data() };
+    } else {
+      return { success: false, error: 'User not found' };
+    }
+  } catch (error) {
+    console.error('Error getting user data:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Check if user is admin
+export const isUserAdmin = async (userId) => {
+  try {
+    const result = await getUserData(userId);
+    if (result.success) {
+      return result.data.role === 'admin';
+    }
+    return false;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+};
+
+// Check if user can edit/delete event
+export const canEditEvent = async (event, user) => {
+  if (!user) return false;
+  
+  // User is the creator
+  if (event.createdBy === user.uid) return true;
+  
+  // User is an admin
+  const isAdmin = await isUserAdmin(user.uid);
+  if (isAdmin) return true;
+  
+  return false;
 };

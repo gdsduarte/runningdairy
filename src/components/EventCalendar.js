@@ -1,24 +1,58 @@
 import React, { useState, useEffect } from "react";
-import { subscribeToEvents } from "../services";
+import { useSelector, useDispatch } from 'react-redux';
+import { setSelectedMonth } from '../store/slices/eventsSlice';
 import "../css/EventCalendar.css";
 
 function EventCalendar({ onEventClick, user, onAddEvent }) {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const dispatch = useDispatch();
+  
+  // Get events from Redux store
+  const events = useSelector((state) => state.events.list);
+  const loading = useSelector((state) => state.events.loading);
+  const selectedYear = useSelector((state) => state.events.selectedYear);
+  const selectedMonth = useSelector((state) => state.events.selectedMonth);
+  
+  const [currentMonth, setCurrentMonth] = useState(new Date(selectedYear, selectedMonth));
   const [view, setView] = useState("month"); // 'month' or 'list'
   const [selectedDay, setSelectedDay] = useState(new Date().getDate());
   const [showDayEvents, setShowDayEvents] = useState(false);
   const [mobileSelectedDay, setMobileSelectedDay] = useState(null);
 
+  // Sync local state with Redux state
   useEffect(() => {
-    const unsubscribe = subscribeToEvents((eventsData) => {
-      setEvents(eventsData);
-      setLoading(false);
-    });
+    setCurrentMonth(new Date(selectedYear, selectedMonth));
+  }, [selectedYear, selectedMonth]);
 
-    return () => unsubscribe();
-  }, []);
+  // Update Redux state when month changes
+  const changeMonth = (offset) => {
+    const newDate = new Date(currentMonth);
+    newDate.setMonth(currentMonth.getMonth() + offset);
+    setCurrentMonth(newDate);
+    dispatch(setSelectedMonth({
+      year: newDate.getFullYear(),
+      month: newDate.getMonth()
+    }));
+  };
+
+  const setMonthDirectly = (month) => {
+    const newDate = new Date(currentMonth);
+    newDate.setMonth(month);
+    setCurrentMonth(newDate);
+    dispatch(setSelectedMonth({
+      year: newDate.getFullYear(),
+      month: newDate.getMonth()
+    }));
+  };
+
+  const setYearDirectly = (year) => {
+    const newDate = new Date(currentMonth);
+    newDate.setFullYear(year);
+    setCurrentMonth(newDate);
+    dispatch(setSelectedMonth({
+      year: newDate.getFullYear(),
+      month: newDate.getMonth()
+    }));
+  };
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -43,12 +77,9 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
     });
   };
 
-  const changeMonth = (offset) => {
-    setCurrentMonth((prev) => {
-      const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + offset);
-      return newDate;
-    });
+  const getSelectedDate = (day) => {
+    const { year, month } = getDaysInMonth(currentMonth);
+    return new Date(year, month, day);
   };
 
   const isToday = (day) => {
@@ -234,7 +265,20 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
         </div>
 
         {user && (
-          <button className="btn btn-create-event" onClick={onAddEvent}>
+          <button
+            className="btn btn-create-event"
+            onClick={() => {
+              const selDate = getSelectedDate(selectedDay);
+              // prevent creating events on past dates
+              const today = new Date();
+              today.setHours(0,0,0,0);
+              if (selDate < today) {
+                alert('You cannot create events in past dates');
+                return;
+              }
+              onAddEvent(selDate);
+            }}
+          >
             Create an Event
           </button>
         )}
@@ -275,22 +319,14 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
         <div className="calendar-year-month">
           <div className="year-selector">
               <button
-                onClick={() => {
-                  const newDate = new Date(currentMonth);
-                  newDate.setFullYear(currentMonth.getFullYear() - 1);
-                  setCurrentMonth(newDate);
-                }}
+                onClick={() => setYearDirectly(currentMonth.getFullYear() - 1)}
                 className="year-nav"
               >
                 ◀
               </button>
               <span className="current-year">{currentMonth.getFullYear()}</span>
               <button
-                onClick={() => {
-                  const newDate = new Date(currentMonth);
-                  newDate.setFullYear(currentMonth.getFullYear() + 1);
-                  setCurrentMonth(newDate);
-                }}
+                onClick={() => setYearDirectly(currentMonth.getFullYear() + 1)}
                 className="year-nav"
               >
                 ▶
@@ -317,11 +353,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                   className={`month-tab ${
                     currentMonth.getMonth() === idx ? "active" : ""
                   }`}
-                  onClick={() => {
-                    const newDate = new Date(currentMonth);
-                    newDate.setMonth(idx);
-                    setCurrentMonth(newDate);
-                  }}
+                  onClick={() => setMonthDirectly(idx)}
                 >
                   {month}
                 </button>
@@ -363,7 +395,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                   ▶
                 </button>
                 {user && (
-                  <button className="btn btn-add-event" onClick={onAddEvent}>
+                  <button className="btn btn-add-event" onClick={() => onAddEvent()}>
                     + Add Event
                   </button>
                 )}
@@ -371,9 +403,20 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
             )}
             {view === "list" && (
               <>
-                <h2 className="month-year">All Events</h2>
+                <button onClick={() => changeMonth(-1)} className="nav-btn">
+                  ◀
+                </button>
+                <h2 className="month-year">
+                  {currentMonth.toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </h2>
+                <button onClick={() => changeMonth(1)} className="nav-btn">
+                  ▶
+                </button>
                 {user && (
-                  <button className="btn btn-add-event" onClick={onAddEvent}>
+                  <button className="btn btn-add-event" onClick={() => onAddEvent()}>
                     + Add Event
                   </button>
                 )}
@@ -420,15 +463,18 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                 {mobileSelectedDay.day}
               </h3>
               {user && mobileSelectedDay.events.length > 0 && (
-                <button
-                  className="btn-add-event-modal"
-                  onClick={() => {
-                    setShowDayEvents(false);
-                    onAddEvent();
-                  }}
-                >
-                  + Add Event
-                </button>
+                // Allow adding events on this day only if it's not in the past
+                !isPastDate() && (
+                  <button
+                    className="btn-add-event-modal"
+                    onClick={() => {
+                      setShowDayEvents(false);
+                      onAddEvent(getSelectedDate(mobileSelectedDay.day));
+                    }}
+                  >
+                    + Add Event
+                  </button>
+                )
               )}
               <button
                 className="close-modal"
@@ -464,20 +510,23 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                     <div className="event-arrow">›</div>
                   </div>
                 ))
-              ) : (
+                  ) : (
                 <div className="no-events-modal">
                   <span className="no-events-icon">📅</span>
                   <p>No events scheduled for this day</p>
-                  {user && (
+                  {user && !isPastDate(mobileSelectedDay.day) && (
                     <button
                       className="btn-create-event-inline"
                       onClick={() => {
                         setShowDayEvents(false);
-                        onAddEvent();
+                        onAddEvent(getSelectedDate(mobileSelectedDay.day));
                       }}
                     >
                       Create an Event
                     </button>
+                  )}
+                  {user && isPastDate(mobileSelectedDay.day) && (
+                    <div className="past-disabled-message">Cannot add event to a past date</div>
                   )}
                 </div>
               )}
