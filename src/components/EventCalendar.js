@@ -1,18 +1,48 @@
 import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from 'react-redux';
-import { setSelectedMonth } from '../store/slices/eventsSlice';
-import "../css/EventCalendar.css";
+import { useSelector, useDispatch } from "react-redux";
+import { setSelectedMonth } from "../store/slices/eventsSlice";
+import {
+  Box,
+  Button,
+  Typography,
+  IconButton,
+  ToggleButton,
+  ToggleButtonGroup,
+  Card,
+  CardContent,
+  Chip,
+  Modal,
+  CircularProgress,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CalendarToday,
+  ViewList,
+  Add,
+  LocationOn,
+  DirectionsRun,
+  Schedule,
+  People,
+  Close,
+} from "@mui/icons-material";
 
 function EventCalendar({ onEventClick, user, onAddEvent }) {
   const dispatch = useDispatch();
-  
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   // Get events from Redux store
   const events = useSelector((state) => state.events.list);
   const loading = useSelector((state) => state.events.loading);
   const selectedYear = useSelector((state) => state.events.selectedYear);
   const selectedMonth = useSelector((state) => state.events.selectedMonth);
-  
-  const [currentMonth, setCurrentMonth] = useState(new Date(selectedYear, selectedMonth));
+
+  const [currentMonth, setCurrentMonth] = useState(
+    new Date(selectedYear, selectedMonth)
+  );
   const [view, setView] = useState("month"); // 'month' or 'list'
   const [selectedDay, setSelectedDay] = useState(new Date().getDate());
   const [showDayEvents, setShowDayEvents] = useState(false);
@@ -24,34 +54,28 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
   }, [selectedYear, selectedMonth]);
 
   // Update Redux state when month changes
-  const changeMonth = (offset) => {
-    const newDate = new Date(currentMonth);
-    newDate.setMonth(currentMonth.getMonth() + offset);
-    setCurrentMonth(newDate);
-    dispatch(setSelectedMonth({
-      year: newDate.getFullYear(),
-      month: newDate.getMonth()
-    }));
-  };
-
   const setMonthDirectly = (month) => {
     const newDate = new Date(currentMonth);
     newDate.setMonth(month);
     setCurrentMonth(newDate);
-    dispatch(setSelectedMonth({
-      year: newDate.getFullYear(),
-      month: newDate.getMonth()
-    }));
+    dispatch(
+      setSelectedMonth({
+        year: newDate.getFullYear(),
+        month: newDate.getMonth(),
+      })
+    );
   };
 
   const setYearDirectly = (year) => {
     const newDate = new Date(currentMonth);
     newDate.setFullYear(year);
     setCurrentMonth(newDate);
-    dispatch(setSelectedMonth({
-      year: newDate.getFullYear(),
-      month: newDate.getMonth()
-    }));
+    dispatch(
+      setSelectedMonth({
+        year: newDate.getFullYear(),
+        month: newDate.getMonth(),
+      })
+    );
   };
 
   const getDaysInMonth = (date) => {
@@ -101,11 +125,9 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
   };
 
   const handleDayClick = (day, dayEvents) => {
-    // On desktop, update the yellow card
     setSelectedDay(day);
 
-    // On mobile, always show the modal when clicking a day
-    if (window.innerWidth <= 768) {
+    if (isMobile) {
       setMobileSelectedDay({ day, events: dayEvents });
       setShowDayEvents(true);
     }
@@ -119,15 +141,24 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
     // Week day headers
     weekDays.forEach((day, index) => {
       days.push(
-        <div key={`header-${index}`} className="calendar-day-header">
+        <Box
+          key={`header-${index}`}
+          sx={{
+            textAlign: "center",
+            fontWeight: 700,
+            color: "text.secondary",
+            py: { xs: 0.5, sm: 1 },
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+          }}
+        >
           {day}
-        </div>
+        </Box>
       );
     });
 
     // Empty cells before first day
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+      days.push(<Box key={`empty-${i}`}></Box>);
     }
 
     // Days of month
@@ -137,18 +168,65 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
       const past = isPastDate(day);
 
       days.push(
-        <div
+        <Box
           key={day}
-          className={`calendar-day ${today ? "today" : ""} ${
-            past ? "past" : ""
-          } ${dayEvents.length > 0 ? "has-events" : ""} ${
-            day === selectedDay ? "selected" : ""
-          }`}
           onClick={() => handleDayClick(day, dayEvents)}
+          sx={{
+            minHeight: { xs: 40, sm: 50, md: 70 },
+            p: { xs: 0.5, sm: 1 },
+            cursor: "pointer",
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: past ? 0.4 : 1,
+            transition: "all 0.2s",
+            "&:hover": {
+              bgcolor: past ? "transparent" : "#f8f8f8",
+              borderRadius: past ? 0 : "4px",
+            },
+          }}
         >
-          <div className="day-number">{day}</div>
-          {dayEvents.length > 0 && <span className="event-dot"></span>}
-        </div>
+          <Box
+            sx={{
+              fontWeight: 400,
+              fontSize: { xs: "15px", sm: "14px" },
+              width: "36px",
+              height: "36px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "50%",
+              position: "relative",
+              bgcolor:
+                today && day === selectedDay
+                  ? "#0066ff"
+                  : today
+                  ? "#0066ff"
+                  : day === selectedDay && !isMobile
+                  ? "#e8e8e8"
+                  : "transparent",
+              color: today ? "white" : "#666",
+            }}
+          >
+            {day}
+          </Box>
+          {dayEvents.length > 0 && (
+            <Box
+              sx={{
+                width: { xs: 5, sm: 6 },
+                height: { xs: 5, sm: 6 },
+                bgcolor: today ? "white" : "#0066ff",
+                borderRadius: "50%",
+                position: "absolute",
+                bottom: 4,
+                left: "50%",
+                transform: "translateX(-50%)",
+              }}
+            />
+          )}
+        </Box>
       );
     }
 
@@ -162,178 +240,464 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
       .reverse();
 
     return (
-      <div className="list-view">
+      <Box sx={{ py: 2 }}>
         {upcomingEvents.length > 0 && (
-          <div className="events-section">
-            <h3>Upcoming Events</h3>
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h3" sx={{ mb: 2 }}>
+              Upcoming Events
+            </Typography>
             {upcomingEvents.map((event) => (
-              <div
+              <Card
                 key={event.id}
-                className="event-card"
                 onClick={() => onEventClick(event)}
+                sx={{
+                  mb: 2,
+                  cursor: "pointer",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: 4,
+                  },
+                }}
               >
-                <div className="event-date-badge">
-                  <div className="month">
-                    {event.date.toLocaleDateString("en-US", { month: "short" })}
-                  </div>
-                  <div className="day">{event.date.getDate()}</div>
-                </div>
-                <div className="event-info">
-                  <h4>{event.name}</h4>
-                  <div className="event-details">
-                    <span>📍 {event.location}</span>
-                    <span>🏃 {event.distance}</span>
-                    <span>
-                      ⏰{" "}
-                      {event.date.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
+                <CardContent
+                  sx={{ display: "flex", gap: 2, alignItems: "center" }}
+                >
+                  <Box
+                    sx={{
+                      bgcolor: "primary.main",
+                      color: "white",
+                      borderRadius: 2,
+                      p: 2,
+                      minWidth: 70,
+                      textAlign: "center",
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ color: "white" }}>
+                      {event.date.toLocaleDateString("en-US", {
+                        month: "short",
                       })}
-                    </span>
-                  </div>
-                  <div className="event-attendees">
-                    👥 {event.attendees?.length || 0} attending
-                  </div>
-                </div>
-              </div>
+                    </Typography>
+                    <Typography variant="h3" sx={{ color: "white" }}>
+                      {event.date.getDate()}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h3" gutterBottom>
+                      {event.name}
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      <Chip
+                        icon={<LocationOn />}
+                        label={event.location}
+                        size="small"
+                      />
+                      <Chip
+                        icon={<DirectionsRun />}
+                        label={event.distance}
+                        size="small"
+                      />
+                      <Chip
+                        icon={<Schedule />}
+                        label={event.date.toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        size="small"
+                      />
+                      <Chip
+                        icon={<People />}
+                        label={`${event.attendees?.length || 0} attending`}
+                        size="small"
+                      />
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
             ))}
-          </div>
+          </Box>
         )}
 
         {pastEvents.length > 0 && (
-          <div className="events-section past-section">
-            <h3>Past Events</h3>
+          <Box>
+            <Typography variant="h3" sx={{ mb: 2, color: "text.secondary" }}>
+              Past Events
+            </Typography>
             {pastEvents.map((event) => (
-              <div
+              <Card
                 key={event.id}
-                className="event-card past-event"
                 onClick={() => onEventClick(event)}
+                sx={{
+                  mb: 2,
+                  cursor: "pointer",
+                  opacity: 0.7,
+                  transition: "transform 0.2s, box-shadow 0.2s, opacity 0.2s",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: 4,
+                    opacity: 1,
+                  },
+                }}
               >
-                <div className="event-date-badge">
-                  <div className="month">
-                    {event.date.toLocaleDateString("en-US", { month: "short" })}
-                  </div>
-                  <div className="day">{event.date.getDate()}</div>
-                </div>
-                <div className="event-info">
-                  <h4>{event.name}</h4>
-                  <div className="event-details">
-                    <span>📍 {event.location}</span>
-                    <span>🏃 {event.distance}</span>
-                  </div>
-                  <div className="event-attendees">
-                    👥 {event.attendees?.length || 0} attended
-                  </div>
-                </div>
-              </div>
+                <CardContent
+                  sx={{ display: "flex", gap: 2, alignItems: "center" }}
+                >
+                  <Box
+                    sx={{
+                      bgcolor: "text.secondary",
+                      color: "white",
+                      borderRadius: 2,
+                      p: 2,
+                      minWidth: 70,
+                      textAlign: "center",
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ color: "white" }}>
+                      {event.date.toLocaleDateString("en-US", {
+                        month: "short",
+                      })}
+                    </Typography>
+                    <Typography variant="h3" sx={{ color: "white" }}>
+                      {event.date.getDate()}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h3" gutterBottom>
+                      {event.name}
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      <Chip
+                        icon={<LocationOn />}
+                        label={event.location}
+                        size="small"
+                      />
+                      <Chip
+                        icon={<DirectionsRun />}
+                        label={event.distance}
+                        size="small"
+                      />
+                      <Chip
+                        icon={<People />}
+                        label={`${event.attendees?.length || 0} attended`}
+                        size="small"
+                      />
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
             ))}
-          </div>
+          </Box>
         )}
 
         {events.length === 0 && (
-          <div className="no-events">
-            <span className="icon">🏃</span>
-            <p>No events scheduled yet</p>
-          </div>
+          <Box sx={{ textAlign: "center", py: 8 }}>
+            <DirectionsRun
+              sx={{ fontSize: 64, color: "text.disabled", mb: 2 }}
+            />
+            <Typography color="text.secondary">
+              No events scheduled yet
+            </Typography>
+          </Box>
         )}
-      </div>
+      </Box>
     );
   };
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading events...</p>
-      </div>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          py: 8,
+          gap: 2,
+        }}
+      >
+        <CircularProgress size={60} />
+        <Typography>Loading events...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="calendar-container">
-      {/* Desktop Day Display Card */}
-      <div className="current-day-display">
-        <div className="current-day-number">{selectedDay}</div>
-        <div className="current-day-name">
-          {new Date(
-            currentMonth.getFullYear(),
-            currentMonth.getMonth(),
-            selectedDay
-          )
-            .toLocaleDateString("en-US", { weekday: "long" })
-            .toUpperCase()}
-        </div>
+    <Box
+      sx={{
+        display: "flex",
+        height: "calc(100vh - 64px)",
+        overflow: "hidden",
+        bgcolor: "background.default",
+        justifyContent: "center",
+        width: "80%",
+        mx: "auto",
+        my: 4,
+        boxShadow: 4,
+      }}
+    >
+      {/* Desktop Day Display Card - Yellow Sidebar */}
+      {!isMobile && (
+        <Box
+          sx={{
+            width: 320,
+            bgcolor: "#F7C948",
+            display: "flex",
+            flexDirection: "column",
+            p: 4,
+            gap: 3,
+            flexShrink: 0,
+          }}
+        >
+          {/* Large Day Number */}
+          <Box sx={{ textAlign: "center" }}>
+            <Typography
+              sx={{
+                fontSize: "8rem",
+                fontWeight: 700,
+                lineHeight: 1,
+                color: "#2c3e50",
+                mb: 1,
+              }}
+            >
+              {selectedDay}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: "1.25rem",
+                fontWeight: 600,
+                letterSpacing: "0.1em",
+                color: "#2c3e50",
+              }}
+            >
+              {new Date(
+                currentMonth.getFullYear(),
+                currentMonth.getMonth(),
+                selectedDay
+              )
+                .toLocaleDateString("en-US", { weekday: "long" })
+                .toUpperCase()}
+            </Typography>
+          </Box>
 
-        {user && (
-          <button
-            className="btn btn-create-event"
-            onClick={() => {
-              const selDate = getSelectedDate(selectedDay);
-              // prevent creating events on past dates
-              const today = new Date();
-              today.setHours(0,0,0,0);
-              if (selDate < today) {
-                alert('You cannot create events in past dates');
-                return;
-              }
-              onAddEvent(selDate);
+          {/* Create Event Button */}
+          {user && (
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => {
+                const selDate = getSelectedDate(selectedDay);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (selDate < today) {
+                  alert("You cannot create events in past dates");
+                  return;
+                }
+                onAddEvent(selDate);
+              }}
+              sx={{
+                bgcolor: "rgba(0, 0, 0, 0.15)",
+                color: "#2c3e50",
+                fontWeight: 600,
+                py: 1.5,
+                "&:hover": {
+                  bgcolor: "rgba(0, 0, 0, 0.25)",
+                },
+              }}
+            >
+              Create an Event
+            </Button>
+          )}
+
+          {/* Events for selected day */}
+          <Box sx={{ flex: 1, overflow: "hidden" }}>
+            {getEventsForDay(selectedDay).length > 0 ? (
+              <Box>
+                {getEventsForDay(selectedDay).map((event) => (
+                  <Box
+                    key={event.id}
+                    onClick={() => onEventClick(event)}
+                    sx={{
+                      p: 2,
+                      mb: 2,
+                      bgcolor: "rgba(255, 255, 255, 0.9)",
+                      borderRadius: 1,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      "&:hover": {
+                        bgcolor: "white",
+                        transform: "translateX(4px)",
+                      },
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block",
+                        mb: 0.5,
+                      }}
+                    >
+                      {event.date.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                      sx={{ color: "#2c3e50" }}
+                    >
+                      {event.name}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block",
+                        mt: 0.5,
+                      }}
+                    >
+                      →
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  textAlign: "center",
+                  color: "rgba(0, 0, 0, 0.4)",
+                  mt: 4,
+                }}
+              >
+                <Typography variant="body1" fontWeight={500}>
+                  No events
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      )}
+
+      {/* Calendar Main Area */}
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "hidden",
+          bgcolor: "background.default",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, flex: 1 }}>
+          {/* Calendar Header - View Toggle */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
             }}
           >
-            Create an Event
-          </button>
-        )}
-
-        {/* Events for selected day */}
-        <div className="selected-day-events">
-          {getEventsForDay(selectedDay).length > 0 ? (
-            <>
-              <div className="selected-day-events-header">
-                {getEventsForDay(selectedDay).length} Event
-                {getEventsForDay(selectedDay).length !== 1 ? "s" : ""}
-              </div>
-              {getEventsForDay(selectedDay).map((event) => (
-                <div
-                  key={event.id}
-                  className="selected-day-event-item"
-                  onClick={() => onEventClick(event)}
+            {/* Year Selector - Desktop Only */}
+            {!isMobile && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  gap: 2,
+                  mb: 2,
+                }}
+              >
+                <IconButton
+                  onClick={() =>
+                    setYearDirectly(currentMonth.getFullYear() - 1)
+                  }
+                  size="small"
                 >
-                  <div className="event-item-time">
-                    {event.date.toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                  <div className="event-item-name">{event.name}</div>
-                  <div className="event-item-arrow">→</div>
-                </div>
-              ))}
-            </>
-          ) : (
-            <div className="no-events-message">No events</div>
-          )}
-        </div>
-      </div>
+                  <ChevronLeft />
+                </IconButton>
+                <Typography
+                  variant="h6"
+                  sx={{ minWidth: 60, textAlign: "center" }}
+                >
+                  {currentMonth.getFullYear()}
+                </Typography>
+                <IconButton
+                  onClick={() =>
+                    setYearDirectly(currentMonth.getFullYear() + 1)
+                  }
+                  size="small"
+                >
+                  <ChevronRight />
+                </IconButton>
+              </Box>
+            )}
 
-      <div className="calendar-wrapper">
-        {/* Year and Month Selector */}
-        <div className="calendar-year-month">
-          <div className="year-selector">
-              <button
-                onClick={() => setYearDirectly(currentMonth.getFullYear() - 1)}
-                className="year-nav"
+            {/* Mobile: Show month navigation */}
+            {isMobile && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <IconButton
+                  onClick={() => {
+                    const newMonth = currentMonth.getMonth() - 1;
+                    setMonthDirectly(newMonth < 0 ? 11 : newMonth);
+                    if (newMonth < 0) {
+                      setYearDirectly(currentMonth.getFullYear() - 1);
+                    }
+                  }}
+                  size="small"
+                >
+                  <ChevronLeft />
+                </IconButton>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {currentMonth.toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </Typography>
+                <IconButton
+                  onClick={() => {
+                    const newMonth = currentMonth.getMonth() + 1;
+                    setMonthDirectly(newMonth > 11 ? 0 : newMonth);
+                    if (newMonth > 11) {
+                      setYearDirectly(currentMonth.getFullYear() + 1);
+                    }
+                  }}
+                  size="small"
+                >
+                  <ChevronRight />
+                </IconButton>
+              </Box>
+            )}
+
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+              <ToggleButtonGroup
+                value={view}
+                exclusive
+                onChange={(e, newView) => newView && setView(newView)}
+                size="small"
               >
-                ◀
-              </button>
-              <span className="current-year">{currentMonth.getFullYear()}</span>
-              <button
-                onClick={() => setYearDirectly(currentMonth.getFullYear() + 1)}
-                className="year-nav"
-              >
-                ▶
-              </button>
-          </div>
-          <div className="month-selector">
-            <div className="month-tabs">
+                <ToggleButton value="month">
+                  <CalendarToday fontSize="small" />
+                </ToggleButton>
+                <ToggleButton value="list">
+                  <ViewList fontSize="small" />
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          </Box>
+
+          {/* Month Selector - Desktop Only */}
+          {!isMobile && (
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 0.5,
+                mb: 3,
+              }}
+            >
               {[
                 "Jan",
                 "Feb",
@@ -348,193 +712,163 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                 "Nov",
                 "Dec",
               ].map((month, idx) => (
-                <button
+                <Button
                   key={month}
-                  className={`month-tab ${
-                    currentMonth.getMonth() === idx ? "active" : ""
-                  }`}
+                  variant={
+                    currentMonth.getMonth() === idx ? "contained" : "text"
+                  }
+                  size="small"
                   onClick={() => setMonthDirectly(idx)}
+                  sx={{
+                    minWidth: { xs: 50, sm: 60 },
+                    bgcolor:
+                      currentMonth.getMonth() === idx
+                        ? "#667eea"
+                        : "transparent",
+                    color: currentMonth.getMonth() === idx ? "white" : "#666",
+                    "&:hover": {
+                      bgcolor:
+                        currentMonth.getMonth() === idx
+                          ? "#5568d3"
+                          : "rgba(0, 0, 0, 0.04)",
+                    },
+                  }}
                 >
                   {month}
-                </button>
+                </Button>
               ))}
-            </div>
-            <div className="view-toggle">
-              <button
-                className={`toggle-btn ${view === "month" ? "active" : ""}`}
-                onClick={() => setView("month")}
-                title="Calendar View"
-              >
-                📅
-              </button>
-              <button
-                className={`toggle-btn ${view === "list" ? "active" : ""}`}
-                onClick={() => setView("list")}
-                title="List View"
-              >
-                📋
-              </button>
-            </div>
-          </div>
-        </div>
+            </Box>
+          )}
 
-        <div className="calendar-header">
-          <div className="calendar-controls">
-            {view === "month" && (
-              <>
-                <button onClick={() => changeMonth(-1)} className="nav-btn">
-                  ◀
-                </button>
-                <h2 className="month-year">
-                  {currentMonth.toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </h2>
-                <button onClick={() => changeMonth(1)} className="nav-btn">
-                  ▶
-                </button>
-                {user && (
-                  <button className="btn btn-add-event" onClick={() => onAddEvent()}>
-                    + Add Event
-                  </button>
-                )}
-              </>
-            )}
-            {view === "list" && (
-              <>
-                <button onClick={() => changeMonth(-1)} className="nav-btn">
-                  ◀
-                </button>
-                <h2 className="month-year">
-                  {currentMonth.toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </h2>
-                <button onClick={() => changeMonth(1)} className="nav-btn">
-                  ▶
-                </button>
-                {user && (
-                  <button className="btn btn-add-event" onClick={() => onAddEvent()}>
-                    + Add Event
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="view-toggle">
-            <button
-              className={`toggle-btn ${view === "month" ? "active" : ""}`}
-              onClick={() => setView("month")}
+          {/* Calendar Grid or List */}
+          {view === "month" ? (
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(7, 1fr)",
+                gap: { xs: "6px", sm: "4px", md: "2px" },
+                flex: 1,
+                overflow: "hidden",
+                alignContent: "start",
+                minHeight: 0,
+              }}
             >
-              📅 Calendar
-            </button>
-            <button
-              className={`toggle-btn ${view === "list" ? "active" : ""}`}
-              onClick={() => setView("list")}
-            >
-              📋 List
-            </button>
-          </div>
-        </div>
-
-        {view === "month" ? (
-          <div className="calendar-grid">{renderCalendarView()}</div>
-        ) : (
-          renderListView()
-        )}
-      </div>
+              {renderCalendarView()}
+            </Box>
+          ) : (
+            renderListView()
+          )}
+        </Box>
+      </Box>
 
       {/* Mobile Day Events Modal */}
-      {showDayEvents && mobileSelectedDay && (
-        <div
-          className="day-events-modal"
-          onClick={() => setShowDayEvents(false)}
+      <Modal
+        open={showDayEvents && mobileSelectedDay !== null}
+        onClose={() => setShowDayEvents(false)}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "90%",
+            maxWidth: 500,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 3,
+            maxHeight: "80vh",
+            overflow: "auto",
+          }}
         >
-          <div
-            className="day-events-content"
-            onClick={(e) => e.stopPropagation()}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
           >
-            <div className="modal-header">
-              <h3>
-                {currentMonth.toLocaleDateString("en-US", { month: "long" })}{" "}
-                {mobileSelectedDay.day}
-              </h3>
-              {user && mobileSelectedDay.events.length > 0 && (
-                // Allow adding events on this day only if it's not in the past
-                !isPastDate() && (
-                  <button
-                    className="btn-add-event-modal"
-                    onClick={() => {
-                      setShowDayEvents(false);
-                      onAddEvent(getSelectedDate(mobileSelectedDay.day));
-                    }}
-                  >
-                    + Add Event
-                  </button>
-                )
-              )}
-              <button
-                className="close-modal"
-                onClick={() => setShowDayEvents(false)}
+            <Typography variant="h3">
+              {currentMonth.toLocaleDateString("en-US", { month: "long" })}{" "}
+              {mobileSelectedDay?.day}
+            </Typography>
+            <IconButton onClick={() => setShowDayEvents(false)}>
+              <Close />
+            </IconButton>
+          </Box>
+
+          {mobileSelectedDay?.events.length > 0 ? (
+            mobileSelectedDay.events.map((event) => (
+              <Card
+                key={event.id}
+                onClick={() => {
+                  setShowDayEvents(false);
+                  onEventClick(event);
+                }}
+                sx={{
+                  mb: 2,
+                  cursor: "pointer",
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
               >
-                ×
-              </button>
-            </div>
-            <div className="modal-events-list">
-              {mobileSelectedDay.events.length > 0 ? (
-                mobileSelectedDay.events.map((event) => (
-                  <div
-                    key={event.id}
-                    className="modal-event-item"
-                    onClick={() => {
-                      setShowDayEvents(false);
-                      onEventClick(event);
-                    }}
-                  >
-                    <div className="event-time">
-                      {event.date.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                    <div className="event-item-info">
-                      <h4>{event.name}</h4>
-                      <div className="event-item-meta">
-                        <span>📍 {event.location}</span>
-                        <span>🏃 {event.distance}</span>
-                      </div>
-                    </div>
-                    <div className="event-arrow">›</div>
-                  </div>
-                ))
-                  ) : (
-                <div className="no-events-modal">
-                  <span className="no-events-icon">📅</span>
-                  <p>No events scheduled for this day</p>
-                  {user && !isPastDate(mobileSelectedDay.day) && (
-                    <button
-                      className="btn-create-event-inline"
-                      onClick={() => {
-                        setShowDayEvents(false);
-                        onAddEvent(getSelectedDate(mobileSelectedDay.day));
-                      }}
-                    >
-                      Create an Event
-                    </button>
-                  )}
-                  {user && isPastDate(mobileSelectedDay.day) && (
-                    <div className="past-disabled-message">Cannot add event to a past date</div>
-                  )}
-                </div>
+                <CardContent>
+                  <Typography variant="caption" color="text.secondary">
+                    {event.date.toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Typography>
+                  <Typography variant="h3" gutterBottom>
+                    {event.name}
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <Chip
+                      icon={<LocationOn />}
+                      label={event.location}
+                      size="small"
+                    />
+                    <Chip
+                      icon={<DirectionsRun />}
+                      label={event.distance}
+                      size="small"
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <CalendarToday
+                sx={{ fontSize: 48, color: "text.disabled", mb: 2 }}
+              />
+              <Typography color="text.secondary" gutterBottom>
+                No events scheduled for this day
+              </Typography>
+              {user && !isPastDate(mobileSelectedDay?.day) && (
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => {
+                    setShowDayEvents(false);
+                    onAddEvent(getSelectedDate(mobileSelectedDay.day));
+                  }}
+                  sx={{ mt: 2 }}
+                >
+                  Create an Event
+                </Button>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              {user && isPastDate(mobileSelectedDay?.day) && (
+                <Typography color="error" variant="body2" sx={{ mt: 2 }}>
+                  Cannot add event to a past date
+                </Typography>
+              )}
+            </Box>
+          )}
+        </Box>
+      </Modal>
+    </Box>
   );
 }
 

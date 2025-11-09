@@ -1,12 +1,52 @@
 import React, { useState, useRef } from "react";
-import { useUserProfileListener } from '../store/hooks/useUserProfileListener';
-import { updateUserProfile, uploadProfileImage, deleteProfileImage } from "../services";
-import "../css/Profile.css";
+import { useUserProfileListener } from "../store/hooks/useUserProfileListener";
+import {
+  updateUserProfile,
+  uploadProfileImage,
+  deleteProfileImage,
+} from "../services";
+import {
+  Box,
+  Avatar,
+  Button,
+  TextField,
+  Typography,
+  Tabs,
+  Tab,
+  Card,
+  CardContent,
+  Grid,
+  CircularProgress,
+  IconButton,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+} from "@mui/material";
+import {
+  Person,
+  CalendarToday,
+  EmojiEvents,
+  Edit,
+  CameraAlt,
+  LocationOn,
+  DirectionsRun,
+  Group,
+  Description,
+  CheckCircle,
+  HourglassEmpty,
+} from "@mui/icons-material";
 
-function Profile({ user, onClose }) {
+function Profile({ user }) {
   // Get user data from Redux store
-  const { profile: reduxProfile, pastEvents, badges, loading } = useUserProfileListener(user?.uid);
-  
+  const {
+    profile: reduxProfile,
+    pastEvents,
+    badges,
+    loading,
+  } = useUserProfileListener(user?.uid);
+
   const [profile, setProfile] = useState({
     displayName: "",
     bio: "",
@@ -17,7 +57,7 @@ function Profile({ user, onClose }) {
   const avatarInputRef = useRef(null);
   const coverInputRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState("profile"); // 'profile', 'history', 'badges'
+  const [activeTab, setActiveTab] = useState(0); // 0: profile, 1: history, 2: badges
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
 
@@ -47,30 +87,30 @@ function Profile({ user, onClose }) {
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     setUploadingAvatar(true);
     try {
       // Delete old avatar if exists
       if (profile.avatarPath) {
         await deleteProfileImage(profile.avatarPath);
       }
-      
+
       // Upload new avatar to Firebase Storage
-      const result = await uploadProfileImage(user.uid, file, 'avatar');
-      
+      const result = await uploadProfileImage(user.uid, file, "avatar");
+
       if (result.success) {
-        const updated = { 
+        const updated = {
           avatarUrl: result.url,
-          avatarPath: result.path 
+          avatarPath: result.path,
         };
         setProfile({ ...profile, ...updated });
         await updateUserProfile(user.uid, updated);
       } else {
-        alert('Failed to upload avatar: ' + result.error);
+        alert("Failed to upload avatar: " + result.error);
       }
     } catch (error) {
-      console.error('Error uploading avatar:', error);
-      alert('Failed to upload avatar');
+      console.error("Error uploading avatar:", error);
+      alert("Failed to upload avatar");
     } finally {
       setUploadingAvatar(false);
     }
@@ -79,30 +119,30 @@ function Profile({ user, onClose }) {
   const handleCoverChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     setUploadingCover(true);
     try {
       // Delete old cover if exists
       if (profile.coverPath) {
         await deleteProfileImage(profile.coverPath);
       }
-      
+
       // Upload new cover to Firebase Storage
-      const result = await uploadProfileImage(user.uid, file, 'cover');
-      
+      const result = await uploadProfileImage(user.uid, file, "cover");
+
       if (result.success) {
-        const updated = { 
+        const updated = {
           coverUrl: result.url,
-          coverPath: result.path 
+          coverPath: result.path,
         };
         setProfile({ ...profile, ...updated });
         await updateUserProfile(user.uid, updated);
       } else {
-        alert('Failed to upload cover: ' + result.error);
+        alert("Failed to upload cover: " + result.error);
       }
     } catch (error) {
-      console.error('Error uploading cover:', error);
-      alert('Failed to upload cover');
+      console.error("Error uploading cover:", error);
+      alert("Failed to upload cover");
     } finally {
       setUploadingCover(false);
     }
@@ -126,291 +166,485 @@ function Profile({ user, onClose }) {
 
   if (loading) {
     return (
-      <div className="profile-container">
-        <div className="loading-spinner"></div>
-        <p>Loading profile...</p>
-      </div>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          py: 8,
+          gap: 2,
+        }}
+      >
+        <CircularProgress size={60} />
+        <Typography>Loading profile...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="profile-container">
-      {/* <button className="close-btn" onClick={onClose}>
-        ×
-      </button> */}
+    <Box sx={{ maxWidth: 1200, mx: "auto", pb: 4 }}>
+      {/* Profile Header with Cover */}
+      <Box
+        sx={{
+          position: "relative",
+          height: 250,
+          backgroundImage: profile.coverUrl
+            ? `url(${profile.coverUrl})`
+            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          mb: 8,
+        }}
+      >
+        {isEditing && (
+          <IconButton
+            onClick={handleCoverSelect}
+            sx={{
+              position: "absolute",
+              top: 16,
+              right: 16,
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "action.hover" },
+            }}
+          >
+            {uploadingCover ? <HourglassEmpty /> : <CameraAlt />}
+          </IconButton>
+        )}
 
-      {/* Profile Header */}
-      <div className="profile-header">
-        <div
-          className="profile-cover"
-          style={profile.coverUrl ? { backgroundImage: `url(${profile.coverUrl})` } : {}}
+        {/* Avatar and Name */}
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: -60,
+            left: { xs: "50%", sm: 32 },
+            transform: { xs: "translateX(-50%)", sm: "none" },
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "center", sm: "flex-end" },
+            gap: 2,
+          }}
         >
-          {isEditing && (
-            <button className="cover-upload-icon" onClick={handleCoverSelect} title="Change cover">
-              {uploadingCover ? '⏳' : '📷'}
-            </button>
-          )}
-
-          <div className="profile-header-content">
-            <div 
-              className="profile-avatar" 
-              onClick={isEditing ? handleAvatarSelect : undefined} 
-              title={isEditing ? "Change avatar" : undefined}
-              style={{ cursor: isEditing ? 'pointer' : 'default' }}
+          <Box sx={{ position: "relative" }}>
+            <Avatar
+              src={profile.avatarUrl}
+              sx={{
+                width: 120,
+                height: 120,
+                border: "4px solid",
+                borderColor: "background.paper",
+                fontSize: "3rem",
+                bgcolor: "primary.main",
+                cursor: isEditing ? "pointer" : "default",
+              }}
+              onClick={isEditing ? handleAvatarSelect : undefined}
             >
               {uploadingAvatar ? (
-                <div className="avatar-uploading">⏳</div>
-              ) : profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt="avatar" className="avatar-img" />
+                <CircularProgress size={40} color="inherit" />
+              ) : profile.displayName ? (
+                profile.displayName.charAt(0).toUpperCase()
               ) : (
-                (profile.displayName ? profile.displayName.charAt(0).toUpperCase() : "U")
+                "U"
               )}
-              {isEditing && <div className="avatar-upload-overlay">✏️</div>}
-            </div>
-            
-            <div className="profile-header-info">
-              <h2>{profile.displayName || "Runner"}</h2>
-              <p className="profile-email">{user.email}</p>
-            </div>
-          </div>
-        </div>
-        
-        {/* hidden file inputs */}
-        <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
-        <input ref={coverInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCoverChange} />
-      </div>
+            </Avatar>
+            {isEditing && (
+              <IconButton
+                size="small"
+                onClick={handleAvatarSelect}
+                sx={{
+                  position: "absolute",
+                  bottom: 0,
+                  right: 0,
+                  bgcolor: "primary.main",
+                  color: "white",
+                  "&:hover": { bgcolor: "primary.dark" },
+                }}
+              >
+                <Edit fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+          <Box sx={{ textAlign: { xs: "center", sm: "left" }, pb: 1 }}>
+            <Typography
+              variant="h2"
+              sx={{ color: "white", textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
+            >
+              {profile.displayName || "Runner"}
+            </Typography>
+            <Typography sx={{ color: "rgba(255,255,255,0.9)" }}>
+              {user.email}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Hidden file inputs */}
+        <input
+          ref={avatarInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={handleAvatarChange}
+        />
+        <input
+          ref={coverInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={handleCoverChange}
+        />
+      </Box>
 
       {/* Tabs */}
-      <div className="profile-tabs">
-        <button
-          className={`tab-btn ${activeTab === "profile" ? "active" : ""}`}
-          onClick={() => setActiveTab("profile")}
+      <Box sx={{ px: { xs: 2, sm: 4 } }}>
+        <Tabs
+          value={activeTab}
+          onChange={(e, newValue) => setActiveTab(newValue)}
+          sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}
         >
-          👤 Profile
-        </button>
-        <button
-          className={`tab-btn ${activeTab === "history" ? "active" : ""}`}
-          onClick={() => setActiveTab("history")}
-        >
-          📅 History ({pastEvents.length})
-        </button>
-        <button
-          className={`tab-btn ${activeTab === "badges" ? "active" : ""}`}
-          onClick={() => setActiveTab("badges")}
-        >
-          🏆 Badges ({badges.length})
-        </button>
-      </div>
+          <Tab icon={<Person />} label="Profile" iconPosition="start" />
+          <Tab
+            icon={<CalendarToday />}
+            label={`History (${pastEvents.length})`}
+            iconPosition="start"
+          />
+          <Tab
+            icon={<EmojiEvents />}
+            label={`Badges (${badges.length})`}
+            iconPosition="start"
+          />
+        </Tabs>
 
-      {/* Tab Content */}
-      <div className="profile-content">
-        {activeTab === "profile" && (
-          <div className="profile-tab">
+        {/* Tab Content */}
+        {activeTab === 0 && (
+          <Box>
             {isEditing ? (
-              <div className="profile-form">
-                <div className="form-group">
-                  <label>Display Name</label>
-                  <input
-                    type="text"
-                    name="displayName"
-                    value={profile.displayName}
-                    onChange={handleInputChange}
-                    placeholder="Your name"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Bio</label>
-                  <textarea
-                    name="bio"
-                    value={profile.bio}
-                    onChange={handleInputChange}
-                    placeholder="Tell us about yourself..."
-                    rows="3"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Location</label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={profile.location}
-                    onChange={handleInputChange}
-                    placeholder="City, Country"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Favorite Distance</label>
-                  <select
+              <Box sx={{ maxWidth: 600 }}>
+                <TextField
+                  fullWidth
+                  label="Display Name"
+                  name="displayName"
+                  value={profile.displayName}
+                  onChange={handleInputChange}
+                  placeholder="Your name"
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Bio"
+                  name="bio"
+                  value={profile.bio}
+                  onChange={handleInputChange}
+                  placeholder="Tell us about yourself..."
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Location"
+                  name="location"
+                  value={profile.location}
+                  onChange={handleInputChange}
+                  placeholder="City, Country"
+                  sx={{ mb: 2 }}
+                />
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Favorite Distance</InputLabel>
+                  <Select
                     name="favoriteDistance"
                     value={profile.favoriteDistance}
                     onChange={handleInputChange}
+                    label="Favorite Distance"
                   >
-                    <option value="">Select...</option>
-                    <option value="5K">5K</option>
-                    <option value="10K">10K</option>
-                    <option value="Half Marathon">Half Marathon</option>
-                    <option value="Marathon">Marathon</option>
-                    <option value="Ultra">Ultra</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Club Name</label>
-                  <input
-                    type="text"
-                    name="clubName"
-                    value={profile.clubName}
-                    onChange={handleInputChange}
-                    placeholder="Your running club"
-                  />
-                </div>
-                <div className="form-actions">
-                  <button
-                    className="btn btn-secondary"
+                    <MenuItem value="">Select...</MenuItem>
+                    <MenuItem value="5K">5K</MenuItem>
+                    <MenuItem value="10K">10K</MenuItem>
+                    <MenuItem value="Half Marathon">Half Marathon</MenuItem>
+                    <MenuItem value="Marathon">Marathon</MenuItem>
+                    <MenuItem value="Ultra">Ultra</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth
+                  label="Club Name"
+                  name="clubName"
+                  value={profile.clubName}
+                  onChange={handleInputChange}
+                  placeholder="Your running club"
+                  sx={{ mb: 3 }}
+                />
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <Button
+                    variant="outlined"
                     onClick={() => setIsEditing(false)}
                   >
                     Cancel
-                  </button>
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleSaveProfile}
-                  >
+                  </Button>
+                  <Button variant="contained" onClick={handleSaveProfile}>
                     Save Changes
-                  </button>
-                </div>
-              </div>
+                  </Button>
+                </Box>
+              </Box>
             ) : (
-              <div className="profile-view">
-                <div className="profile-info-grid">
-                  <div className="info-card">
-                    <div className="info-icon">👤</div>
-                    <div>
-                      <strong>Display Name</strong>
-                      <p>{profile.displayName || "Not set"}</p>
-                    </div>
-                  </div>
+              <Box>
+                <Grid container spacing={2} sx={{ mb: 3 }}>
+                  <Grid item xs={12} sm={6}>
+                    <Card>
+                      <CardContent
+                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
+                      >
+                        <Person color="primary" />
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Display Name
+                          </Typography>
+                          <Typography variant="body1">
+                            {profile.displayName || "Not set"}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
                   {profile.bio && (
-                    <div className="info-card">
-                      <div className="info-icon">📝</div>
-                      <div>
-                        <strong>Bio</strong>
-                        <p>{profile.bio}</p>
-                      </div>
-                    </div>
+                    <Grid item xs={12}>
+                      <Card>
+                        <CardContent sx={{ display: "flex", gap: 2 }}>
+                          <Description color="primary" />
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">
+                              Bio
+                            </Typography>
+                            <Typography variant="body1">
+                              {profile.bio}
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
                   )}
-                  <div className="info-card">
-                    <div className="info-icon">📍</div>
-                    <div>
-                      <strong>Location</strong>
-                      <p>{profile.location || "Not set"}</p>
-                    </div>
-                  </div>
-                  <div className="info-card">
-                    <div className="info-icon">🏃</div>
-                    <div>
-                      <strong>Favorite Distance</strong>
-                      <p>{profile.favoriteDistance || "Not set"}</p>
-                    </div>
-                  </div>
-                  <div className="info-card">
-                    <div className="info-icon">🏅</div>
-                    <div>
-                      <strong>Club</strong>
-                      <p>{profile.clubName || "Not set"}</p>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  className="btn btn-primary"
+                  <Grid item xs={12} sm={6}>
+                    <Card>
+                      <CardContent
+                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
+                      >
+                        <LocationOn color="primary" />
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Location
+                          </Typography>
+                          <Typography variant="body1">
+                            {profile.location || "Not set"}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Card>
+                      <CardContent
+                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
+                      >
+                        <DirectionsRun color="primary" />
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Favorite Distance
+                          </Typography>
+                          <Typography variant="body1">
+                            {profile.favoriteDistance || "Not set"}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Card>
+                      <CardContent
+                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
+                      >
+                        <Group color="primary" />
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Club
+                          </Typography>
+                          <Typography variant="body1">
+                            {profile.clubName || "Not set"}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+                <Button
+                  variant="contained"
+                  startIcon={<Edit />}
                   onClick={() => setIsEditing(true)}
                 >
                   Edit Profile
-                </button>
-              </div>
+                </Button>
+              </Box>
             )}
-          </div>
+          </Box>
         )}
 
-        {activeTab === "history" && (
-          <div className="history-tab">
+        {activeTab === 1 && (
+          <Box>
             {pastEvents.length === 0 ? (
-              <div className="empty-state">
-                <span className="empty-icon">📅</span>
-                <p>No past events yet</p>
-                <small>Attend events to build your running history!</small>
-              </div>
+              <Box sx={{ textAlign: "center", py: 8 }}>
+                <CalendarToday
+                  sx={{ fontSize: 64, color: "text.disabled", mb: 2 }}
+                />
+                <Typography color="text.secondary" gutterBottom>
+                  No past events yet
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Attend events to build your running history!
+                </Typography>
+              </Box>
             ) : (
-              <div className="events-list">
+              <Grid container spacing={2}>
                 {pastEvents.map((event) => (
-                  <div key={event.id} className="history-event-card">
-                    <div className="event-date-badge">
-                      <div className="month">
-                        {event.date.toLocaleDateString("en-US", {
-                          month: "short",
-                        })}
-                      </div>
-                      <div className="day">{event.date.getDate()}</div>
-                    </div>
-                    <div className="event-info">
-                      <h4>{event.name}</h4>
-                      <div className="event-meta">
-                        <span>📍 {event.location}</span>
-                        <span>🏃 {event.distance}</span>
-                      </div>
-                    </div>
-                    <div className="event-status">
-                      <span className="completed-badge">✓ Completed</span>
-                    </div>
-                  </div>
+                  <Grid item xs={12} key={event.id}>
+                    <Card>
+                      <CardContent
+                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
+                      >
+                        <Box
+                          sx={{
+                            bgcolor: "text.secondary",
+                            color: "white",
+                            borderRadius: 2,
+                            p: 2,
+                            minWidth: 70,
+                            textAlign: "center",
+                          }}
+                        >
+                          <Typography variant="caption" sx={{ color: "white" }}>
+                            {event.date.toLocaleDateString("en-US", {
+                              month: "short",
+                            })}
+                          </Typography>
+                          <Typography variant="h3" sx={{ color: "white" }}>
+                            {event.date.getDate()}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="h3" gutterBottom>
+                            {event.name}
+                          </Typography>
+                          <Box
+                            sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}
+                          >
+                            <Chip
+                              icon={<LocationOn />}
+                              label={event.location}
+                              size="small"
+                            />
+                            <Chip
+                              icon={<DirectionsRun />}
+                              label={event.distance}
+                              size="small"
+                            />
+                          </Box>
+                        </Box>
+                        <Chip
+                          icon={<CheckCircle />}
+                          label="Completed"
+                          color="success"
+                        />
+                      </CardContent>
+                    </Card>
+                  </Grid>
                 ))}
-              </div>
+              </Grid>
             )}
-          </div>
+          </Box>
         )}
 
-        {activeTab === "badges" && (
-          <div className="badges-tab">
+        {activeTab === 2 && (
+          <Box>
             {badges.length === 0 ? (
-              <div className="empty-state">
-                <span className="empty-icon">🏆</span>
-                <p>No badges earned yet</p>
-                <small>Attend events to unlock achievements!</small>
-              </div>
+              <Box sx={{ textAlign: "center", py: 8 }}>
+                <EmojiEvents
+                  sx={{ fontSize: 64, color: "text.disabled", mb: 2 }}
+                />
+                <Typography color="text.secondary" gutterBottom>
+                  No badges earned yet
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Attend events to unlock achievements!
+                </Typography>
+              </Box>
             ) : (
               <>
-                <div className="badges-stats">
-                  <div className="stat-item">
-                    <div className="stat-value">{badges.length}</div>
-                    <div className="stat-label">Badges Earned</div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-value">{pastEvents.length}</div>
-                    <div className="stat-label">Events Completed</div>
-                  </div>
-                </div>
-                <div className="badges-grid">
+                <Grid container spacing={2} sx={{ mb: 4 }}>
+                  <Grid item xs={6}>
+                    <Card sx={{ bgcolor: "primary.main", color: "white" }}>
+                      <CardContent sx={{ textAlign: "center" }}>
+                        <Typography variant="h2" sx={{ color: "white" }}>
+                          {badges.length}
+                        </Typography>
+                        <Typography sx={{ color: "white" }}>
+                          Badges Earned
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Card sx={{ bgcolor: "secondary.main", color: "white" }}>
+                      <CardContent sx={{ textAlign: "center" }}>
+                        <Typography variant="h2" sx={{ color: "white" }}>
+                          {pastEvents.length}
+                        </Typography>
+                        <Typography sx={{ color: "white" }}>
+                          Events Completed
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+                <Grid container spacing={2}>
                   {badges.map((badge) => (
-                    <div
-                      key={badge.id}
-                      className="badge-card"
-                      style={{ borderColor: badge.color }}
-                    >
-                      <div
-                        className="badge-icon"
-                        style={{ background: badge.color }}
+                    <Grid item xs={12} sm={6} md={4} key={badge.id}>
+                      <Card
+                        sx={{
+                          borderTop: 3,
+                          borderColor: badge.color || "primary.main",
+                        }}
                       >
-                        {badge.icon}
-                      </div>
-                      <h4>{badge.name}</h4>
-                      <p>{badge.description}</p>
-                    </div>
+                        <CardContent sx={{ textAlign: "center" }}>
+                          <Box
+                            sx={{
+                              width: 80,
+                              height: 80,
+                              borderRadius: "50%",
+                              bgcolor: badge.color || "primary.main",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              mx: "auto",
+                              mb: 2,
+                              fontSize: "2rem",
+                            }}
+                          >
+                            {badge.icon}
+                          </Box>
+                          <Typography variant="h3" gutterBottom>
+                            {badge.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {badge.description}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
                   ))}
-                </div>
+                </Grid>
               </>
             )}
-          </div>
+          </Box>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 

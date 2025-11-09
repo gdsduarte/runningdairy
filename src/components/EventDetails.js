@@ -1,6 +1,34 @@
 import React, { useState, useEffect } from "react";
-import { subscribeToEvent, rsvpToEvent, deleteEvent, canEditEvent } from "../services";
-import "../css/EventDetails.css";
+import {
+  subscribeToEvent,
+  rsvpToEvent,
+  deleteEvent,
+  canEditEvent,
+} from "../services";
+import {
+  Box,
+  Modal,
+  Typography,
+  Button,
+  IconButton,
+  Avatar,
+  Chip,
+  Alert,
+  CircularProgress,
+  Divider,
+} from "@mui/material";
+import {
+  Close,
+  CalendarToday,
+  Schedule,
+  LocationOn,
+  DirectionsRun,
+  People,
+  Edit,
+  Delete,
+  CheckCircle,
+  OpenInNew,
+} from "@mui/icons-material";
 
 function EventDetails({ event, onClose, user, onEditEvent }) {
   const [loading, setLoading] = useState(false);
@@ -40,7 +68,11 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
   const isPastEvent = liveEvent.date < new Date();
 
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this event? This action cannot be undone."
+      )
+    ) {
       return;
     }
 
@@ -50,11 +82,11 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
       if (result.success) {
         onClose();
       } else {
-        setError(result.error || 'Failed to delete event');
+        setError(result.error || "Failed to delete event");
       }
     } catch (err) {
-      console.error('Error deleting event:', err);
-      setError('Failed to delete event. Please try again.');
+      console.error("Error deleting event:", err);
+      setError("Failed to delete event. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -105,155 +137,259 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="event-details-container">
-        <div className="event-header">
-          {/* <div className="event-icon-large">🏃</div> */}
-          <h2>{liveEvent.name}</h2>
-          <button className="close-btn" onClick={onClose}>
-            ×
-          </button>
-          {isPastEvent && <div className="past-badge">Past Event</div>}
-        </div>
+    <Modal
+      open={true}
+      onClose={onClose}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Box
+        sx={{
+          position: "relative",
+          width: "90%",
+          maxWidth: 700,
+          maxHeight: "90vh",
+          bgcolor: "background.paper",
+          borderRadius: 2,
+          boxShadow: 24,
+          overflow: "auto",
+        }}
+      >
+        {/* Header */}
+        <Box
+          sx={{
+            position: "sticky",
+            top: 0,
+            bgcolor: "primary.main",
+            color: "white",
+            p: 3,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            zIndex: 1,
+          }}
+        >
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h2" sx={{ color: "white", mb: 1 }}>
+              {liveEvent.name}
+            </Typography>
+            {isPastEvent && (
+              <Chip
+                label="Past Event"
+                size="small"
+                sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "white" }}
+              />
+            )}
+          </Box>
+          <IconButton
+            onClick={onClose}
+            sx={{
+              color: "white",
+              bgcolor: "rgba(255,255,255,0.1)",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+            }}
+          >
+            <Close />
+          </IconButton>
+        </Box>
 
-        <div className="event-content">
-          <div className="info-section">
-            <div className="info-item">
-              <span className="info-icon">📅</span>
-              <div className="info-text">
-                <strong>Date</strong>
-                <p>{formatDate(liveEvent.date)}</p>
-              </div>
-            </div>
+        {/* Content */}
+        <Box sx={{ p: 3 }}>
+          {/* Info Section */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3 }}>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+              <CalendarToday color="primary" />
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Date
+                </Typography>
+                <Typography variant="body1">
+                  {formatDate(liveEvent.date)}
+                </Typography>
+              </Box>
+            </Box>
 
-            <div className="info-item">
-              <span className="info-icon">⏰</span>
-              <div className="info-text">
-                <strong>Time</strong>
-                <p>{formatTime(liveEvent.date)}</p>
-              </div>
-            </div>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+              <Schedule color="primary" />
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Time
+                </Typography>
+                <Typography variant="body1">
+                  {formatTime(liveEvent.date)}
+                </Typography>
+              </Box>
+            </Box>
 
-            <div className="info-item">
-              <span className="info-icon">📍</span>
-              <div className="info-text">
-                <strong>Location</strong>
-                <p>{liveEvent.location}</p>
-              </div>
-            </div>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+              <LocationOn color="primary" />
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Location
+                </Typography>
+                <Typography variant="body1">{liveEvent.location}</Typography>
+              </Box>
+            </Box>
 
-            <div className="info-item">
-              <span className="info-icon">🏃</span>
-              <div className="info-text">
-                <strong>Distance</strong>
-                <p>{liveEvent.distance}</p>
-              </div>
-            </div>
-          </div>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+              <DirectionsRun color="primary" />
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Distance
+                </Typography>
+                <Typography variant="body1">{liveEvent.distance}</Typography>
+              </Box>
+            </Box>
+          </Box>
 
           {liveEvent.description && (
-            <div className="description-section">
-              <h3>About this event</h3>
-              <p>{liveEvent.description}</p>
-            </div>
+            <>
+              <Divider sx={{ my: 3 }} />
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h3" gutterBottom>
+                  About this event
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  {liveEvent.description}
+                </Typography>
+              </Box>
+            </>
           )}
 
-          <div className="attendees-section">
-            <h3>👥 Attendees ({liveEvent.attendees?.length || 0})</h3>
+          {/* Attendees */}
+          <Divider sx={{ my: 3 }} />
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+              <People color="primary" />
+              <Typography variant="h3">
+                Attendees ({liveEvent.attendees?.length || 0})
+              </Typography>
+            </Box>
             {liveEvent.attendees && liveEvent.attendees.length > 0 ? (
-              <div className="attendees-list">
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 {liveEvent.attendees.map((attendee, index) => {
                   const isCurrentUser = user && user.uid === attendee.uid;
                   return (
-                    <div 
-                      key={index} 
-                      className={`attendee-card ${isCurrentUser ? 'current-user' : ''}`}
+                    <Box
+                      key={index}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: isCurrentUser
+                          ? "primary.light"
+                          : "background.default",
+                        border: isCurrentUser ? 2 : 1,
+                        borderColor: isCurrentUser ? "primary.main" : "divider",
+                      }}
                     >
-                      <div className="attendee-avatar">
-                        {attendee.displayName?.charAt(0).toUpperCase() || "👤"}
-                      </div>
-                      <div className="attendee-info">
-                        <div className="attendee-name">
+                      <Avatar sx={{ bgcolor: "primary.main" }}>
+                        {attendee.displayName?.charAt(0).toUpperCase() || "U"}
+                      </Avatar>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body1" fontWeight={600}>
                           {attendee.displayName}
-                        </div>
+                          {isCurrentUser && " (You)"}
+                        </Typography>
                         {attendee.clubName && (
-                          <div className="attendee-club">
-                            🏅 {attendee.clubName}
-                          </div>
+                          <Typography variant="body2" color="text.secondary">
+                            {attendee.clubName}
+                          </Typography>
                         )}
-                      </div>
-                    </div>
+                      </Box>
+                    </Box>
                   );
                 })}
-              </div>
+              </Box>
             ) : (
-              <p className="no-attendees">
+              <Typography color="text.secondary">
                 No one has signed up yet. Be the first!
-              </p>
+              </Typography>
             )}
-          </div>
+          </Box>
 
-          {error && <div className="error-message">{error}</div>}
-
-          {canEdit && (
-            <div className="admin-actions">
-              <button
-                onClick={() => onEditEvent(liveEvent)}
-                className="btn btn-edit"
-                disabled={loading}
-              >
-                ✏️ Edit Event
-              </button>
-              <button
-                onClick={handleDelete}
-                className="btn btn-delete"
-                disabled={loading}
-              >
-                🗑️ Delete Event
-              </button>
-            </div>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
           )}
 
-          <div className="action-buttons">
+          {/* Admin Actions */}
+          {canEdit && (
+            <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<Edit />}
+                onClick={() => onEditEvent(liveEvent)}
+                disabled={loading}
+                fullWidth
+              >
+                Edit Event
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<Delete />}
+                onClick={handleDelete}
+                disabled={loading}
+                fullWidth
+              >
+                Delete
+              </Button>
+            </Box>
+          )}
+
+          {/* Action Buttons */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {!isPastEvent && (
               <>
                 {user ? (
-                  <button
+                  <Button
+                    variant={isAttending ? "outlined" : "contained"}
+                    fullWidth
+                    startIcon={isAttending ? <CheckCircle /> : null}
                     onClick={handleRSVP}
-                    className={`btn ${
-                      isAttending ? "btn-secondary" : "btn-primary"
-                    }`}
                     disabled={loading}
                   >
-                    {loading
-                      ? "Updating..."
-                      : isAttending
-                      ? "✓ Attending"
-                      : "RSVP"}
-                  </button>
+                    {loading ? (
+                      <CircularProgress size={24} />
+                    ) : isAttending ? (
+                      "Attending"
+                    ) : (
+                      "RSVP"
+                    )}
+                  </Button>
                 ) : (
-                  <button
-                    className="btn btn-primary"
+                  <Button
+                    variant="contained"
+                    fullWidth
                     onClick={() => alert("Please sign in to RSVP")}
                   >
                     Sign in to RSVP
-                  </button>
+                  </Button>
                 )}
               </>
             )}
 
-            <a
+            <Button
+              variant="outlined"
+              fullWidth
+              endIcon={<OpenInNew />}
               href={liveEvent.signupLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn btn-link"
             >
-              Official Registration →
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
+              Official Registration
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    </Modal>
   );
 }
 
