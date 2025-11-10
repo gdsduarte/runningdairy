@@ -28,6 +28,11 @@ import {
   People,
   Close,
 } from "@mui/icons-material";
+import {
+  responsiveSpacing,
+  responsiveSizing,
+  componentStyles,
+} from "../utils/responsive";
 
 function EventCalendar({ onEventClick, user, onAddEvent }) {
   const dispatch = useDispatch();
@@ -425,14 +430,14 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
     <Box
       sx={{
         display: "flex",
-        height: "calc(100vh - 64px)",
+        height: { xs: "100%", md: "calc(100vh - 64px)" },
         overflow: "hidden",
         bgcolor: "background.default",
         justifyContent: "center",
-        width: "80%",
+        width: { xs: "100%", md: "80%" },
         mx: "auto",
-        my: 4,
-        boxShadow: 4,
+        my: { xs: 0, md: 4 },
+        boxShadow: { xs: 0, md: 4 },
       }}
     >
       {/* Desktop Day Display Card - Yellow Sidebar */}
@@ -440,11 +445,11 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
         <Box
           sx={{
             width: 320,
-            bgcolor: "#F7C948",
+            bgcolor: theme.palette.secondary.light,
             display: "flex",
             flexDirection: "column",
-            p: 4,
-            gap: 3,
+            p: responsiveSpacing.pageContainer,
+            gap: responsiveSpacing.sectionGap,
             flexShrink: 0,
           }}
         >
@@ -496,9 +501,9 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               }}
               sx={{
                 bgcolor: "rgba(0, 0, 0, 0.15)",
-                color: "#2c3e50",
+                color: theme.palette.text.primary,
                 fontWeight: 600,
-                py: 1.5,
+                py: responsiveSpacing.pageContainer,
                 "&:hover": {
                   bgcolor: "rgba(0, 0, 0, 0.25)",
                 },
@@ -589,18 +594,101 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
           flexDirection: "column",
         }}
       >
-        <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, flex: 1 }}>
-          {/* Calendar Header - View Toggle */}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
-            }}
-          >
-            {/* Year Selector - Desktop Only */}
-            {!isMobile && (
+        <Box
+          sx={{
+            p: isMobile ? 0 : responsiveSpacing.pageContainer,
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Mobile: Month Navigation at Top */}
+          {isMobile && (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                px: 2,
+                py: 2,
+                bgcolor: "background.paper",
+              }}
+            >
+              <IconButton
+                onClick={() => {
+                  const newMonth = currentMonth.getMonth() - 1;
+                  setMonthDirectly(newMonth < 0 ? 11 : newMonth);
+                  if (newMonth < 0) {
+                    setYearDirectly(currentMonth.getFullYear() - 1);
+                  }
+                }}
+                size="small"
+              >
+                <ChevronLeft />
+              </IconButton>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {currentMonth.toLocaleDateString("en-US", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </Typography>
+              <IconButton
+                onClick={() => {
+                  const newMonth = currentMonth.getMonth() + 1;
+                  setMonthDirectly(newMonth > 11 ? 0 : newMonth);
+                  if (newMonth > 11) {
+                    setYearDirectly(currentMonth.getFullYear() + 1);
+                  }
+                }}
+                size="small"
+              >
+                <ChevronRight />
+              </IconButton>
+            </Box>
+          )}
+
+          {/* Mobile: Toggle Buttons */}
+          {isMobile && (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                px: 2,
+                pb: 2,
+                bgcolor: "background.paper",
+              }}
+            >
+              <ToggleButtonGroup
+                value={view}
+                exclusive
+                onChange={(e, newView) => newView && setView(newView)}
+                size="small"
+                fullWidth
+                sx={{ maxWidth: 400 }}
+              >
+                <ToggleButton value="month">
+                  <CalendarToday fontSize="small" sx={{ mr: 1 }} />
+                  Calendar
+                </ToggleButton>
+                <ToggleButton value="list">
+                  <ViewList fontSize="small" sx={{ mr: 1 }} />
+                  List
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          )}
+
+          {/* Calendar Header - View Toggle - Desktop Only */}
+          {!isMobile && (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
+              {/* Year Selector - Desktop Only */}
               <Box
                 sx={{
                   display: "flex",
@@ -633,60 +721,24 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                   <ChevronRight />
                 </IconButton>
               </Box>
-            )}
 
-            {/* Mobile: Show month navigation */}
-            {isMobile && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <IconButton
-                  onClick={() => {
-                    const newMonth = currentMonth.getMonth() - 1;
-                    setMonthDirectly(newMonth < 0 ? 11 : newMonth);
-                    if (newMonth < 0) {
-                      setYearDirectly(currentMonth.getFullYear() - 1);
-                    }
-                  }}
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <ToggleButtonGroup
+                  value={view}
+                  exclusive
+                  onChange={(e, newView) => newView && setView(newView)}
                   size="small"
                 >
-                  <ChevronLeft />
-                </IconButton>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {currentMonth.toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </Typography>
-                <IconButton
-                  onClick={() => {
-                    const newMonth = currentMonth.getMonth() + 1;
-                    setMonthDirectly(newMonth > 11 ? 0 : newMonth);
-                    if (newMonth > 11) {
-                      setYearDirectly(currentMonth.getFullYear() + 1);
-                    }
-                  }}
-                  size="small"
-                >
-                  <ChevronRight />
-                </IconButton>
+                  <ToggleButton value="month">
+                    <CalendarToday fontSize="small" />
+                  </ToggleButton>
+                  <ToggleButton value="list">
+                    <ViewList fontSize="small" />
+                  </ToggleButton>
+                </ToggleButtonGroup>
               </Box>
-            )}
-
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <ToggleButtonGroup
-                value={view}
-                exclusive
-                onChange={(e, newView) => newView && setView(newView)}
-                size="small"
-              >
-                <ToggleButton value="month">
-                  <CalendarToday fontSize="small" />
-                </ToggleButton>
-                <ToggleButton value="list">
-                  <ViewList fontSize="small" />
-                </ToggleButton>
-              </ToggleButtonGroup>
             </Box>
-          </Box>
+          )}
 
           {/* Month Selector - Desktop Only */}
           {!isMobile && (
@@ -695,7 +747,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                 display: "flex",
                 flexWrap: "wrap",
                 gap: 0.5,
-                mb: 3,
+                mb: responsiveSpacing.sectionGap,
               }}
             >
               {[
@@ -720,16 +772,19 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                   size="small"
                   onClick={() => setMonthDirectly(idx)}
                   sx={{
-                    minWidth: { xs: 50, sm: 60 },
+                    minWidth: responsiveSizing.iconMedium,
                     bgcolor:
                       currentMonth.getMonth() === idx
-                        ? "#667eea"
+                        ? theme.palette.primary.main
                         : "transparent",
-                    color: currentMonth.getMonth() === idx ? "white" : "#666",
+                    color:
+                      currentMonth.getMonth() === idx
+                        ? "white"
+                        : theme.palette.text.secondary,
                     "&:hover": {
                       bgcolor:
                         currentMonth.getMonth() === idx
-                          ? "#5568d3"
+                          ? theme.palette.primary.dark
                           : "rgba(0, 0, 0, 0.04)",
                     },
                   }}
@@ -746,9 +801,11 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               sx={{
                 display: "grid",
                 gridTemplateColumns: "repeat(7, 1fr)",
-                gap: { xs: "6px", sm: "4px", md: "2px" },
+                gap: { xs: 0, sm: 0.5 },
+                overflow: "auto",
+                px: isMobile ? 2 : 0,
+                pb: isMobile ? 2 : 0,
                 flex: 1,
-                overflow: "hidden",
                 alignContent: "start",
                 minHeight: 0,
               }}
@@ -768,18 +825,8 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
       >
         <Box
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: "90%",
-            maxWidth: 500,
-            bgcolor: "background.paper",
-            borderRadius: 2,
-            boxShadow: 24,
-            p: 3,
-            maxHeight: "80vh",
-            overflow: "auto",
+            ...componentStyles.responsiveModal,
+            p: responsiveSpacing.modalPadding,
           }}
         >
           <Box

@@ -10,12 +10,14 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import { componentStyles } from "../utils/responsive";
 import {
   DirectionsRun,
   CalendarToday,
   Person,
   Menu,
   ChevronLeft,
+  Logout,
 } from "@mui/icons-material";
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -24,9 +26,10 @@ const menuItems = [
   { path: "/dashboard", label: "Dashboard", icon: <DirectionsRun /> },
   { path: "/calendar", label: "Calendar", icon: <CalendarToday /> },
   { path: "/profile", label: "Profile", icon: <Person /> },
+  { path: "/logout", label: "Logout", icon: <Logout /> },
 ];
 
-function MainLayout({ children }) {
+function MainLayout({ children, onLogout }) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,27 +47,23 @@ function MainLayout({ children }) {
         {/* Bottom Navigation */}
         <Box
           sx={{
-            position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            bgcolor: "background.paper",
-            borderTop: "1px solid",
-            borderColor: "divider",
-            display: "flex",
-            justifyContent: "space-around",
-            py: 1,
-            zIndex: 1100,
+            ...componentStyles.mobileBottomNav,
           }}
         >
           {menuItems.map((item) => (
             <IconButton
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                if (item.path === "/logout") {
+                  onLogout?.();
+                } else {
+                  navigate(item.path);
+                }
+              }}
               sx={{
                 color:
                   location.pathname === item.path
-                    ? "primary.main"
+                    ? theme.palette.primary.main
                     : "text.secondary",
                 display: "flex",
                 flexDirection: "column",
@@ -112,10 +111,10 @@ function MainLayout({ children }) {
         >
           {sidebarExpanded && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <DirectionsRun color="primary" />
+              <DirectionsRun sx={{ color: theme.palette.primary.main }} />
               <Box
                 component="span"
-                sx={{ fontWeight: 700, color: "primary.main" }}
+                sx={{ fontWeight: 700, color: theme.palette.primary.main }}
               >
                 RunDiary
               </Box>
@@ -148,7 +147,7 @@ function MainLayout({ children }) {
                     justifyContent: "center",
                     color:
                       location.pathname === item.path
-                        ? "primary.main"
+                        ? theme.palette.primary.main
                         : "inherit",
                   }}
                 >

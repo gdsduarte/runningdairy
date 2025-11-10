@@ -23,7 +23,9 @@ import {
   FormControl,
   InputLabel,
   Chip,
+  useTheme,
 } from "@mui/material";
+import { responsiveSpacing } from "../utils/responsive";
 import {
   Person,
   CalendarToday,
@@ -39,6 +41,7 @@ import {
 } from "@mui/icons-material";
 
 function Profile({ user }) {
+  const theme = useTheme();
   // Get user data from Redux store
   const {
     profile: reduxProfile,
@@ -183,7 +186,7 @@ function Profile({ user }) {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", pb: 4 }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto", pb: responsiveSpacing.sectionGap }}>
       {/* Profile Header with Cover */}
       <Box
         sx={{
@@ -191,7 +194,7 @@ function Profile({ user }) {
           height: 250,
           backgroundImage: profile.coverUrl
             ? `url(${profile.coverUrl})`
-            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, #764ba2 100%)`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           mb: 8,
@@ -234,7 +237,7 @@ function Profile({ user }) {
                 border: "4px solid",
                 borderColor: "background.paper",
                 fontSize: "3rem",
-                bgcolor: "primary.main",
+                bgcolor: theme.palette.primary.main,
                 cursor: isEditing ? "pointer" : "default",
               }}
               onClick={isEditing ? handleAvatarSelect : undefined}
@@ -295,11 +298,15 @@ function Profile({ user }) {
       </Box>
 
       {/* Tabs */}
-      <Box sx={{ px: { xs: 2, sm: 4 } }}>
+      <Box sx={{ px: responsiveSpacing.pageContainer }}>
         <Tabs
           value={activeTab}
           onChange={(e, newValue) => setActiveTab(newValue)}
-          sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}
+          sx={{
+            borderBottom: 1,
+            borderColor: "divider",
+            mb: responsiveSpacing.sectionGap,
+          }}
         >
           <Tab icon={<Person />} label="Profile" iconPosition="start" />
           <Tab
@@ -387,13 +394,17 @@ function Profile({ user }) {
               </Box>
             ) : (
               <Box>
-                <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid
+                  container
+                  spacing={2}
+                  sx={{ mb: responsiveSpacing.sectionGap }}
+                >
                   <Grid item xs={12} sm={6}>
                     <Card>
                       <CardContent
                         sx={{ display: "flex", gap: 2, alignItems: "center" }}
                       >
-                        <Person color="primary" />
+                        <Person sx={{ color: theme.palette.primary.main }} />
                         <Box>
                           <Typography variant="body2" color="text.secondary">
                             Display Name
@@ -409,7 +420,9 @@ function Profile({ user }) {
                     <Grid item xs={12}>
                       <Card>
                         <CardContent sx={{ display: "flex", gap: 2 }}>
-                          <Description color="primary" />
+                          <Description
+                            sx={{ color: theme.palette.primary.main }}
+                          />
                           <Box>
                             <Typography variant="body2" color="text.secondary">
                               Bio
@@ -427,7 +440,9 @@ function Profile({ user }) {
                       <CardContent
                         sx={{ display: "flex", gap: 2, alignItems: "center" }}
                       >
-                        <LocationOn color="primary" />
+                        <LocationOn
+                          sx={{ color: theme.palette.primary.main }}
+                        />
                         <Box>
                           <Typography variant="body2" color="text.secondary">
                             Location
@@ -444,7 +459,9 @@ function Profile({ user }) {
                       <CardContent
                         sx={{ display: "flex", gap: 2, alignItems: "center" }}
                       >
-                        <DirectionsRun color="primary" />
+                        <DirectionsRun
+                          sx={{ color: theme.palette.primary.main }}
+                        />
                         <Box>
                           <Typography variant="body2" color="text.secondary">
                             Favorite Distance
@@ -461,7 +478,7 @@ function Profile({ user }) {
                       <CardContent
                         sx={{ display: "flex", gap: 2, alignItems: "center" }}
                       >
-                        <Group color="primary" />
+                        <Group sx={{ color: theme.palette.primary.main }} />
                         <Box>
                           <Typography variant="body2" color="text.secondary">
                             Club

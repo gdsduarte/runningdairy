@@ -14,10 +14,14 @@ import {
   Alert,
   CircularProgress,
   Grid,
+  useTheme,
 } from "@mui/material";
 import { Close, CalendarToday } from "@mui/icons-material";
+import { responsiveSpacing, componentStyles } from "../utils/responsive";
 
 function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
+  const theme = useTheme();
+
   // Format the selected date or use today
   const defaultDate = selectedDate || new Date();
   const dateString = defaultDate.toISOString().split("T")[0];
@@ -88,14 +92,8 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
     >
       <Box
         sx={{
+          ...componentStyles.responsiveModal,
           position: "relative",
-          width: "90%",
-          maxWidth: 600,
-          maxHeight: "90vh",
-          bgcolor: "background.paper",
-          borderRadius: 2,
-          boxShadow: 24,
-          overflow: "auto",
         }}
       >
         {/* Header */}
@@ -103,9 +101,9 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
           sx={{
             position: "sticky",
             top: 0,
-            bgcolor: "primary.main",
+            bgcolor: theme.palette.primary.main,
             color: "white",
-            p: 3,
+            p: responsiveSpacing.pageContainer,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -131,8 +129,12 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
         </Box>
 
         {/* Form */}
-        <Box component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
-          <Grid container spacing={2}>
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{ p: responsiveSpacing.pageContainer }}
+        >
+          <Grid container spacing={responsiveSpacing.gridSpacing}>
             <Grid item xs={12}>
               <TextField
                 fullWidth

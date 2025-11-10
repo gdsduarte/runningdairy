@@ -14,10 +14,14 @@ import {
   Alert,
   CircularProgress,
   Grid,
+  useTheme,
 } from "@mui/material";
 import { Close, Edit } from "@mui/icons-material";
+import { responsiveSpacing, componentStyles } from "../utils/responsive";
 
 function EditEvent({ event, onClose, onEventUpdated }) {
+  const theme = useTheme();
+
   const eventDate =
     event.date instanceof Date ? event.date : new Date(event.date);
 
@@ -86,14 +90,8 @@ function EditEvent({ event, onClose, onEventUpdated }) {
     >
       <Box
         sx={{
+          ...componentStyles.responsiveModal,
           position: "relative",
-          width: "90%",
-          maxWidth: 600,
-          maxHeight: "90vh",
-          bgcolor: "background.paper",
-          borderRadius: 2,
-          boxShadow: 24,
-          overflow: "auto",
         }}
       >
         {/* Header */}
@@ -101,9 +99,9 @@ function EditEvent({ event, onClose, onEventUpdated }) {
           sx={{
             position: "sticky",
             top: 0,
-            bgcolor: "primary.main",
+            bgcolor: theme.palette.primary.main,
             color: "white",
-            p: 3,
+            p: responsiveSpacing.pageContainer,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -129,8 +127,12 @@ function EditEvent({ event, onClose, onEventUpdated }) {
         </Box>
 
         {/* Form */}
-        <Box component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
-          <Grid container spacing={2}>
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{ p: responsiveSpacing.pageContainer }}
+        >
+          <Grid container spacing={responsiveSpacing.gridSpacing}>
             <Grid item xs={12}>
               <TextField
                 fullWidth

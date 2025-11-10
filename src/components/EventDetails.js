@@ -16,7 +16,9 @@ import {
   Alert,
   CircularProgress,
   Divider,
+  useTheme,
 } from "@mui/material";
+import { responsiveSpacing, componentStyles } from "../utils/responsive";
 import {
   Close,
   CalendarToday,
@@ -31,6 +33,7 @@ import {
 } from "@mui/icons-material";
 
 function EventDetails({ event, onClose, user, onEditEvent }) {
+  const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [liveEvent, setLiveEvent] = useState(event);
@@ -148,14 +151,8 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
     >
       <Box
         sx={{
-          position: "relative",
-          width: "90%",
+          ...componentStyles.responsiveModal,
           maxWidth: 700,
-          maxHeight: "90vh",
-          bgcolor: "background.paper",
-          borderRadius: 2,
-          boxShadow: 24,
-          overflow: "auto",
         }}
       >
         {/* Header */}
@@ -163,9 +160,9 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
           sx={{
             position: "sticky",
             top: 0,
-            bgcolor: "primary.main",
+            bgcolor: theme.palette.primary.main,
             color: "white",
-            p: 3,
+            p: responsiveSpacing.pageContainer,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -197,11 +194,18 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
         </Box>
 
         {/* Content */}
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: responsiveSpacing.pageContainer }}>
           {/* Info Section */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              mb: responsiveSpacing.sectionGap,
+            }}
+          >
             <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <CalendarToday color="primary" />
+              <CalendarToday sx={{ color: theme.palette.primary.main }} />
               <Box>
                 <Typography variant="body2" color="text.secondary">
                   Date
@@ -213,7 +217,7 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
             </Box>
 
             <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <Schedule color="primary" />
+              <Schedule sx={{ color: theme.palette.primary.main }} />
               <Box>
                 <Typography variant="body2" color="text.secondary">
                   Time
@@ -225,7 +229,7 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
             </Box>
 
             <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <LocationOn color="primary" />
+              <LocationOn sx={{ color: theme.palette.primary.main }} />
               <Box>
                 <Typography variant="body2" color="text.secondary">
                   Location
@@ -235,7 +239,7 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
             </Box>
 
             <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <DirectionsRun color="primary" />
+              <DirectionsRun sx={{ color: theme.palette.primary.main }} />
               <Box>
                 <Typography variant="body2" color="text.secondary">
                   Distance
@@ -247,8 +251,8 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
 
           {liveEvent.description && (
             <>
-              <Divider sx={{ my: 3 }} />
-              <Box sx={{ mb: 3 }}>
+              <Divider sx={{ my: responsiveSpacing.sectionGap }} />
+              <Box sx={{ mb: responsiveSpacing.sectionGap }}>
                 <Typography variant="h3" gutterBottom>
                   About this event
                 </Typography>
@@ -260,10 +264,10 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
           )}
 
           {/* Attendees */}
-          <Divider sx={{ my: 3 }} />
-          <Box sx={{ mb: 3 }}>
+          <Divider sx={{ my: responsiveSpacing.sectionGap }} />
+          <Box sx={{ mb: responsiveSpacing.sectionGap }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-              <People color="primary" />
+              <People sx={{ color: theme.palette.primary.main }} />
               <Typography variant="h3">
                 Attendees ({liveEvent.attendees?.length || 0})
               </Typography>
@@ -282,13 +286,15 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
                         p: 1.5,
                         borderRadius: 1,
                         bgcolor: isCurrentUser
-                          ? "primary.light"
+                          ? "rgba(0, 102, 255, 0.1)"
                           : "background.default",
                         border: isCurrentUser ? 2 : 1,
-                        borderColor: isCurrentUser ? "primary.main" : "divider",
+                        borderColor: isCurrentUser
+                          ? theme.palette.primary.main
+                          : "divider",
                       }}
                     >
-                      <Avatar sx={{ bgcolor: "primary.main" }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
                         {attendee.displayName?.charAt(0).toUpperCase() || "U"}
                       </Avatar>
                       <Box sx={{ flex: 1 }}>

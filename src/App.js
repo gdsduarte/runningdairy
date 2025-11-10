@@ -6,6 +6,7 @@ import { Box, CircularProgress } from "@mui/material";
 import { useSelector } from "react-redux";
 import { useAuthListener } from "./store/hooks/useAuthListener";
 import { useEventsListener } from "./store/hooks/useEventsListener";
+import { signOut } from "./services";
 import theme from "./theme/theme";
 import MainLayout from "./components/MainLayout";
 import Auth from "./components/Auth";
@@ -55,6 +56,14 @@ function App() {
     setShowAddEvent(true);
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   if (loading) {
     return (
       <Box
@@ -86,7 +95,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
-        <MainLayout>
+        <MainLayout onLogout={handleLogout}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route

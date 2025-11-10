@@ -8,6 +8,7 @@ import {
   Divider,
   IconButton,
   Paper,
+  useTheme,
 } from "@mui/material";
 import { Close, DirectionsRun, Google } from "@mui/icons-material";
 import {
@@ -15,8 +16,10 @@ import {
   signUpWithEmail,
   signInWithGoogle,
 } from "../services";
+import { responsiveSpacing } from "../utils/responsive";
 
 function Auth({ onClose }) {
+  const theme = useTheme();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -86,7 +89,7 @@ function Auth({ onClose }) {
         sx={{
           width: "100%",
           maxWidth: 400,
-          p: 4,
+          p: responsiveSpacing.pageContainer,
           position: "relative",
         }}
       >
@@ -108,10 +111,10 @@ function Auth({ onClose }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            mb: 3,
+            mb: responsiveSpacing.sectionGap,
           }}
         >
-          <DirectionsRun sx={{ fontSize: 40, color: "primary.main", mr: 1 }} />
+          <DirectionsRun sx={{ fontSize: 40, color: theme.palette.primary.main, mr: 1 }} />
           <Typography variant="h2" component="h2">
             {isLogin ? "Welcome Back!" : "Join the Run"}
           </Typography>
@@ -160,7 +163,7 @@ function Auth({ onClose }) {
           </Button>
         </Box>
 
-        <Divider sx={{ my: 3 }}>
+        <Divider sx={{ my: responsiveSpacing.sectionGap }}>
           <Typography variant="body2" color="text.secondary">
             OR
           </Typography>
@@ -183,7 +186,7 @@ function Auth({ onClose }) {
           Continue with Google
         </Button>
 
-        <Typography variant="body2" align="center" sx={{ mt: 3 }}>
+        <Typography variant="body2" align="center" sx={{ mt: responsiveSpacing.sectionGap }}>
           {isLogin ? "Don't have an account? " : "Already have an account? "}
           <Button
             onClick={() => {
