@@ -679,15 +679,15 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
       {!isMobile && (
         <Box>
           <Grid container spacing={2.5}>
-            {/* LEFT COLUMN */}
-            <Grid item xs={12} md={7}>
+            {/* LEFT COLUMN - Active Events */}
+            <Grid item xs={12} md={4.5}>
               {/* Active Events Section */}
               <Card
                 sx={{
                   mb: 2.5,
-                  boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-                  borderRadius: 2,
+                  boxShadow: { xs: 0, md: 4 },
                   bgcolor: "white",
+                  height: "calc(100vh - 64px)",
                 }}
               >
                 <CardContent sx={{ p: 2.5 }}>
@@ -893,12 +893,16 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                   )}
                 </CardContent>
               </Card>
+            </Grid>
 
-              {/* Running Gallery */}
+            {/* MIDDLE COLUMN - Recent Activity & Community */}
+
+                        <Grid item xs={12} md={4}>
+              {/* Events I'm Attending Card */}
               <Card
                 sx={{
-                  boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-                  borderRadius: 2,
+                  mb: 2.5,
+                  boxShadow: { xs: 0, md: 4 },
                   bgcolor: "white",
                 }}
               >
@@ -921,73 +925,183 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                         letterSpacing: "0.05em",
                       }}
                     >
-                      My Running Gallery
+                      Events I'm Attending
                     </Typography>
                     <Box
-                      sx={{ fontSize: 16, color: "#9ca3af", cursor: "pointer" }}
+                      sx={{
+                        bgcolor: "#10B981",
+                        color: "white",
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 2,
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                      }}
                     >
-                      •••
+                      {myUpcomingEvents.length}
                     </Box>
                   </Box>
 
-                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((item, index) => (
-                      <Box
-                        key={item}
-                        sx={{
-                          width: 62,
-                          height: 62,
-                          borderRadius: 1.5,
-                          background:
-                            index === 8
-                              ? "#1f2937"
-                              : index % 4 === 0
-                              ? "#fbbf24"
-                              : index % 4 === 1
-                              ? "#34d399"
-                              : index % 4 === 2
-                              ? "#60a5fa"
-                              : "#a78bfa",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                          transition: "transform 0.2s",
-                          "&:hover": {
-                            transform: "scale(1.05)",
-                          },
-                        }}
-                      >
-                        {index === 8 ? (
-                          <Typography
+                  {myUpcomingEvents.length > 0 ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 1.5,
+                        maxHeight: 320,
+                        overflowY: "auto",
+                        pr: 0.5,
+                      }}
+                    >
+                      {myUpcomingEvents.slice(0, 3).map((event) => (
+                        <Box
+                          key={event.id}
+                          sx={{
+                            cursor: "pointer",
+                            p: 1.5,
+                            borderRadius: 2,
+                            bgcolor: "#D1FAE5",
+                            border: "1px solid #86EFAC",
+                            transition: "transform 0.2s",
+                            "&:hover": {
+                              transform: "translateY(-2px)",
+                            },
+                          }}
+                          onClick={() => onEventClick(event)}
+                        >
+                          <Box
                             sx={{
-                              color: "white",
-                              fontSize: "0.875rem",
-                              fontWeight: 600,
+                              display: "flex",
+                              gap: 1.5,
+                              alignItems: "flex-start",
                             }}
                           >
-                            +1685
-                          </Typography>
-                        ) : index === 4 ? (
-                          <Box sx={{ fontSize: 24 }}>▶️</Box>
-                        ) : (
-                          <Box sx={{ fontSize: 24, opacity: 0.9 }}>🏃</Box>
-                        )}
-                      </Box>
-                    ))}
-                  </Box>
+                            <Box
+                              sx={{
+                                bgcolor: "#f0f0f0",
+                                borderRadius: 1.5,
+                                p: 1,
+                                minWidth: 50,
+                                textAlign: "center",
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontSize: "0.625rem",
+                                  fontWeight: 600,
+                                  color: "#7C3AED",
+                                  display: "block",
+                                }}
+                              >
+                                {event.date
+                                  .toLocaleDateString("en-US", {
+                                    month: "short",
+                                  })
+                                  .toUpperCase()}
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontSize: "1.125rem",
+                                  fontWeight: 700,
+                                  color: "#2c3e50",
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {event.date.getDate()}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography
+                                sx={{
+                                  fontSize: "0.875rem",
+                                  fontWeight: 600,
+                                  color: "#1f2937",
+                                  mb: 0.5,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {event.name}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1.5,
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                  }}
+                                >
+                                  <LocationOn
+                                    sx={{ fontSize: 14, color: "#DC2626" }}
+                                  />
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ fontSize: "0.75rem", color: "#666" }}
+                                  >
+                                    {event.location}
+                                  </Typography>
+                                </Box>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                  }}
+                                >
+                                  <Schedule
+                                    sx={{ fontSize: 14, color: "#F59E0B" }}
+                                  />
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ fontSize: "0.75rem", color: "#666" }}
+                                  >
+                                    {formatTime(event.date)}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+                            <CheckCircle
+                              sx={{ fontSize: 20, color: "#10B981" }}
+                            />
+                          </Box>
+                        </Box>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Box sx={{ textAlign: "center", py: 4 }}>
+                      <Box sx={{ fontSize: 40, mb: 1.5, opacity: 0.3 }}>✅</Box>
+                      <Typography
+                        color="text.secondary"
+                        sx={{ fontSize: "0.875rem" }}
+                      >
+                        You haven't signed up for any events yet
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mt: 0.5, fontSize: "0.75rem" }}
+                      >
+                        Browse events and RSVP to start your running journey
+                      </Typography>
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
-            </Grid>
 
-            {/* RIGHT COLUMN */}
-            <Grid item xs={12} md={5}>
               {/* Statistics Card */}
               <Card
                 sx={{
                   mb: 2.5,
-                  boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-                  borderRadius: 2,
+                  boxShadow: { xs: 0, md: 4 },
                   bgcolor: "white",
                 }}
               >
@@ -1136,13 +1250,15 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                   </Box>
                 </CardContent>
               </Card>
+            </Grid>
 
+            {/* RIGHT COLUMN - Events Attending & Statistics */}
+            <Grid item xs={12} md={3.5}>
               {/* Recent Activity Card */}
               <Card
                 sx={{
                   mb: 2.5,
-                  boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-                  borderRadius: 2,
+                  boxShadow: { xs: 0, md: 4 },
                   bgcolor: "white",
                 }}
               >
@@ -1271,8 +1387,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
               {/* Community Feed Card */}
               <Card
                 sx={{
-                  boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-                  borderRadius: 2,
+                  boxShadow: { xs: 0, md: 4 },
                   bgcolor: "#6366f1",
                   color: "white",
                 }}

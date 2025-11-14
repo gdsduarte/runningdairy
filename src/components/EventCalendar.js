@@ -445,7 +445,8 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
         <Box
           sx={{
             width: 320,
-            bgcolor: theme.palette.secondary.light,
+            bgcolor: "#6366f1",
+            color: "white",
             display: "flex",
             flexDirection: "column",
             p: responsiveSpacing.pageContainer,
@@ -454,13 +455,12 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
           }}
         >
           {/* Large Day Number */}
-          <Box sx={{ textAlign: "center" }}>
+          <Box sx={{ textAlign: "center", mt: 4 }}>
             <Typography
               sx={{
-                fontSize: "8rem",
+                fontSize: "8rem !important",
                 fontWeight: 700,
-                lineHeight: 1,
-                color: "#2c3e50",
+                lineHeight: 0.85,
                 mb: 1,
               }}
             >
@@ -468,10 +468,9 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
             </Typography>
             <Typography
               sx={{
-                fontSize: "1.25rem",
+                fontSize: "2rem",
                 fontWeight: 600,
-                letterSpacing: "0.1em",
-                color: "#2c3e50",
+                letterSpacing: "0.3em",
               }}
             >
               {new Date(
@@ -501,9 +500,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               }}
               sx={{
                 bgcolor: "rgba(0, 0, 0, 0.15)",
-                color: theme.palette.text.primary,
                 fontWeight: 600,
-                py: responsiveSpacing.pageContainer,
                 "&:hover": {
                   bgcolor: "rgba(0, 0, 0, 0.25)",
                 },
@@ -571,7 +568,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               <Box
                 sx={{
                   textAlign: "center",
-                  color: "rgba(0, 0, 0, 0.4)",
+                  color: "white",
                   mt: 4,
                 }}
               >
