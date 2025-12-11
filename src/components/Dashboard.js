@@ -39,6 +39,50 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
   // Get next 3 upcoming events
   const nextEvents = upcomingEvents.slice(0, 3);
 
+  // Calculate monthly statistics for the last 6 months
+  const getMonthlyStats = () => {
+    const months = [];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      // All events in this month (past and upcoming)
+      const totalEventsInMonth = events.filter(event => {
+        const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
+        return eventDate >= monthStart && eventDate <= monthEnd;
+      });
+      
+      // Events user completed in this month (past only)
+      const completedEventsInMonth = events.filter(event => {
+        const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
+        return eventDate >= monthStart && eventDate <= monthEnd &&
+               eventDate < now &&
+               event.attendees?.some((attendee) => attendee.uid === user.uid);
+      });
+      
+      months.push({
+        name: monthNames[date.getMonth()],
+        total: totalEventsInMonth.length,
+        completed: completedEventsInMonth.length,
+      });
+    }
+    
+    return months;
+  };
+
+  const monthlyStats = getMonthlyStats();
+  const maxCount = Math.max(...monthlyStats.map(m => m.total), 1);
+
+  // Get total events attended (past events)
+  const pastEvents = events.filter((event) => {
+    const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
+    return eventDate < now && event.attendees?.some((attendee) => attendee.uid === user.uid);
+  });
+
   const formatTime = (date) => {
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
@@ -86,6 +130,9 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                 boxShadow: { xs: 0, md: 4 },
                 bgcolor: "white",
                 height: "calc(100vh - 64px)",
+                ...isMobile && {
+                  height: "auto",
+                },
               }}
             >
               <CardContent sx={{ p: 2.5 }}>
@@ -132,7 +179,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                   <Box
                     sx={{ display: "flex", flexDirection: "column", gap: 2 }}
                   >
-                    {nextEvents.map((event) => (
+                    {nextEvents.slice(0, 3).map((event) => (
                       <Box
                         key={event.id}
                         sx={{
@@ -522,74 +569,133 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                       letterSpacing: "0.05em",
                     }}
                   >
-                    Statistics
+                    Activity
                   </Typography>
-                  <Box
-                    sx={{ fontSize: 16, color: "#9ca3af", cursor: "pointer" }}
+                  <Typography
+                    sx={{ fontSize: "0.75rem", color: "#9ca3af" }}
                   >
-                    •••
-                  </Box>
+                    Last 6 months
+                  </Typography>
                 </Box>
 
-                {/* Stats Chart */}
+                {/* Monthly Bar Chart */}
                 <Box
                   sx={{
                     height: 180,
                     borderRadius: 2,
-                    bgcolor: "#fef3c7",
+                    bgcolor: "#f9fafb",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    alignItems: "flex-end",
+                    justifyContent: "space-around",
                     p: 2,
-                    position: "relative",
+                    gap: 1,
                     mb: 2,
                   }}
                 >
-                  {/* Wave Chart */}
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: "50%",
-                      left: "10%",
-                      right: "10%",
-                      transform: "translateY(-50%)",
-                    }}
-                  >
-                    <svg
-                      width="100%"
-                      height="80"
-                      viewBox="0 0 300 80"
-                      preserveAspectRatio="none"
+                  {monthlyStats.map((month, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 1,
+                      }}
                     >
-                      <path
-                        d="M0,40 Q50,15 100,30 T200,40 T300,30"
-                        fill="none"
-                        stroke="#f97316"
-                        strokeWidth="3"
-                      />
-                    </svg>
-                  </Box>
-
-                  {/* Date Badge */}
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: 20,
-                      right: 20,
-                      bgcolor: "#374151",
-                      color: "white",
-                      px: 1.5,
-                      py: 0.8,
-                      borderRadius: 1,
-                      fontSize: "0.688rem",
-                      fontWeight: 600,
-                      textAlign: "center",
-                    }}
-                  >
-                    <Box sx={{ fontSize: "0.563rem", opacity: 0.7 }}>
-                      OCTOBER
+                      {/* Stacked Bar Container */}
+                      <Box
+                        sx={{
+                          width: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          position: "relative",
+                        }}
+                      >
+                        {/* Total Events Bar (Background) */}
+                        <Box
+                          sx={{
+                            width: "100%",
+                            height: maxCount > 0 ? `${(month.total / maxCount) * 120}px` : "4px",
+                            minHeight: "4px",
+                            bgcolor: month.total > 0 ? "#e0e7ff" : "#e5e7eb",
+                            borderRadius: 1,
+                            position: "relative",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {/* Completed Events Bar (Foreground) */}
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              height: month.total > 0 ? `${(month.completed / month.total) * 100}%` : "0%",
+                              bgcolor: theme.palette.primary.main,
+                              borderRadius: 1,
+                              transition: "all 0.3s ease",
+                            }}
+                          />
+                        </Box>
+                        
+                        {/* Count Badge */}
+                        {month.total > 0 && (
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              top: -20,
+                              fontSize: "0.688rem",
+                              fontWeight: 600,
+                              color: theme.palette.primary.main,
+                            }}
+                          >
+                            {month.completed}/{month.total}
+                          </Box>
+                        )}
+                      </Box>
+                      
+                      <Typography
+                        sx={{
+                          fontSize: "0.688rem",
+                          color: "#9ca3af",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {month.name}
+                      </Typography>
                     </Box>
-                    <Box sx={{ fontSize: "1.25rem", fontWeight: 700 }}>12</Box>
+                  ))}
+                </Box>
+
+                {/* Legend */}
+                <Box sx={{ display: "flex", justifyContent: "center", gap: 3, mb: 2 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box
+                      sx={{
+                        width: 12,
+                        height: 12,
+                        bgcolor: theme.palette.primary.main,
+                        borderRadius: 0.5,
+                      }}
+                    />
+                    <Typography sx={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                      Completed
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box
+                      sx={{
+                        width: 12,
+                        height: 12,
+                        bgcolor: "#e0e7ff",
+                        borderRadius: 0.5,
+                      }}
+                    />
+                    <Typography sx={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                      Total Events
+                    </Typography>
                   </Box>
                 </Box>
 
@@ -611,12 +717,12 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                         color: "#1f2937",
                       }}
                     >
-                      {upcomingEvents.length}
+                      {pastEvents.length}
                     </Typography>
                     <Typography
                       sx={{ fontSize: "0.75rem", color: "#9ca3af", mt: 0.5 }}
                     >
-                      Total Events
+                      Completed
                     </Typography>
                   </Box>
                   <Box
@@ -640,7 +746,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                     <Typography
                       sx={{ fontSize: "0.75rem", color: "#9ca3af", mt: 0.5 }}
                     >
-                      Attending
+                      Upcoming
                     </Typography>
                   </Box>
                 </Box>

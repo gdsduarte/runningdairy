@@ -5,26 +5,23 @@ import {
   Button,
   Typography,
   Alert,
-  Divider,
-  IconButton,
   Paper,
   useTheme,
 } from "@mui/material";
-import { Close, DirectionsRun, Google } from "@mui/icons-material";
+import { DirectionsRun } from "@mui/icons-material";
 import {
   signInWithEmail,
-  signUpWithEmail,
-  signInWithGoogle,
 } from "../services";
 import { responsiveSpacing } from "../utils/responsive";
+// import RegisterClub from "./RegisterClub";
 
 function Auth({ onClose }) {
   const theme = useTheme();
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // const [showRegisterClub, setShowRegisterClub] = useState(false);
 
   const handleEmailAuth = async (e) => {
     e.preventDefault();
@@ -32,33 +29,10 @@ function Auth({ onClose }) {
     setLoading(true);
 
     try {
-      let result;
-      if (isLogin) {
-        result = await signInWithEmail(email, password);
-      } else {
-        result = await signUpWithEmail(email, password);
-      }
+      const result = await signInWithEmail(email, password);
 
       if (result.success) {
-        onClose();
-      } else {
-        setError(result.error);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleAuth = async () => {
-    setError("");
-    setLoading(true);
-
-    try {
-      const result = await signInWithGoogle();
-      if (result.success) {
-        onClose();
+        if (onClose) onClose();
       } else {
         setError(result.error);
       }
@@ -93,19 +67,6 @@ function Auth({ onClose }) {
           position: "relative",
         }}
       >
-        {onClose && (
-          <IconButton
-            onClick={onClose}
-            sx={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-            }}
-          >
-            <Close />
-          </IconButton>
-        )}
-
         <Box
           sx={{
             display: "flex",
@@ -116,7 +77,7 @@ function Auth({ onClose }) {
         >
           <DirectionsRun sx={{ fontSize: 40, color: theme.palette.primary.main, mr: 1 }} />
           <Typography variant="h2" component="h2">
-            {isLogin ? "Welcome Back!" : "Join the Run"}
+            Welcome Back!
           </Typography>
         </Box>
 
@@ -159,51 +120,41 @@ function Auth({ onClose }) {
             disabled={loading}
             sx={{ mt: 1 }}
           >
-            {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
+            {loading ? "Loading..." : "Sign In"}
           </Button>
         </Box>
 
-        <Divider sx={{ my: responsiveSpacing.sectionGap }}>
-          <Typography variant="body2" color="text.secondary">
-            OR
-          </Typography>
-        </Divider>
+        <Typography variant="body2" align="center" color="text.secondary" sx={{ mt: responsiveSpacing.sectionGap }}>
+          Members are invited by club administrators
+        </Typography>
+
+        {/* <Divider sx={{ my: responsiveSpacing.sectionGap }} />
 
         <Button
-          onClick={handleGoogleAuth}
-          variant="outlined"
+          onClick={() => setShowRegisterClub(true)}
+          variant="text"
           fullWidth
-          disabled={loading}
-          startIcon={<Google />}
           sx={{
-            borderColor: "divider",
-            color: "text.primary",
-            "&:hover": {
-              bgcolor: "action.hover",
-            },
+            color: theme.palette.primary.main,
+            textTransform: "none",
+            fontSize: "1rem",
+            fontWeight: 600,
           }}
         >
-          Continue with Google
-        </Button>
-
-        <Typography variant="body2" align="center" sx={{ mt: responsiveSpacing.sectionGap }}>
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <Button
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setError("");
-            }}
-            sx={{
-              textTransform: "none",
-              p: 0,
-              minWidth: "auto",
-              fontWeight: 600,
-            }}
-          >
-            {isLogin ? "Sign Up" : "Sign In"}
-          </Button>
-        </Typography>
+          Register Your Running Club
+        </Button> */}
       </Paper>
+
+      {/* {{showRegisterClub && (
+        <RegisterClub
+          open={showRegisterClub}
+          onClose={() => setShowRegisterClub(false)}
+          onSuccess={() => {
+            setShowRegisterClub(false);
+            // User will be automatically logged in after registration
+          }}
+        />
+      )} */}
     </Box>
   );
 }

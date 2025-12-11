@@ -2,3 +2,5 @@
 export * from './authService';
 export * from './eventService';
 export * from './userService';
+export * from './adminService';
+export * from './clubService';

@@ -11,7 +11,8 @@ import {
   Card,
   CardContent,
   Chip,
-  Modal,
+  Dialog,
+  Slide,
   CircularProgress,
   useMediaQuery,
   useTheme,
@@ -52,6 +53,8 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
   const [selectedDay, setSelectedDay] = useState(new Date().getDate());
   const [showDayEvents, setShowDayEvents] = useState(false);
   const [mobileSelectedDay, setMobileSelectedDay] = useState(null);
+  const [dialogExpanded, setDialogExpanded] = useState(false);
+  const [dragStart, setDragStart] = useState(null);
 
   // Sync local state with Redux state
   useEffect(() => {
@@ -801,8 +804,8 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                 gap: { xs: 0, sm: 0.5 },
                 overflow: "auto",
                 px: isMobile ? 2 : 0,
-                pb: isMobile ? 2 : 0,
-                flex: 1,
+                pb: 2,
+                borderBottom: isMobile ? "1px solid #e0e0e0" : "none",
                 alignContent: "start",
                 minHeight: 0,
               }}
@@ -815,17 +818,85 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
         </Box>
       </Box>
 
-      {/* Mobile Day Events Modal */}
-      <Modal
+      {/* Mobile Day Events Dialog */}
+      <Dialog
         open={showDayEvents && mobileSelectedDay !== null}
         onClose={() => setShowDayEvents(false)}
+        fullScreen={isMobile}
+        fullWidth
+        maxWidth="sm"
+        TransitionComponent={Slide}
+        TransitionProps={{
+          direction: "up",
+        }}
+        hideBackdrop={true} // Remove backdrop completely
+        sx={{
+          zIndex: 1000, // Below the bottom nav bar (which is 1100)
+        }}
+        PaperProps={{
+          sx: {
+            ...(isMobile && {
+              position: "fixed",
+              top: dialogExpanded ? 64 : "50vh", // Account for top app bar (64px) when expanded
+              m: 0,
+              borderRadius: "16px 16px 0 0",
+              transition: "top 0.3s ease-in-out", // Smooth transition
+            }),
+          },
+        }}
       >
         <Box
           sx={{
-            ...componentStyles.responsiveModal,
             p: responsiveSpacing.modalPadding,
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
+          {/* Drag Handle */}
+          <Box
+            onTouchStart={(e) => {
+              setDragStart(e.touches[0].clientY);
+            }}
+            onTouchMove={(e) => {
+              if (dragStart !== null) {
+                const currentY = e.touches[0].clientY;
+                const diff = dragStart - currentY;
+                
+                // Swipe up to expand (diff > 50)
+                if (diff > 50 && !dialogExpanded) {
+                  setDialogExpanded(true);
+                  setDragStart(null);
+                }
+                // Swipe down to collapse (diff < -50)
+                else if (diff < -50 && dialogExpanded) {
+                  setDialogExpanded(false);
+                  setDragStart(null);
+                }
+              }
+            }}
+            onTouchEnd={() => setDragStart(null)}
+            sx={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              py: 1,
+              cursor: "grab",
+              "&:active": {
+                cursor: "grabbing",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                width: 40,
+                height: 4,
+                bgcolor: "divider",
+                borderRadius: 2,
+              }}
+            />
+          </Box>
+
           <Box
             sx={{
               display: "flex",
@@ -838,50 +909,65 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               {currentMonth.toLocaleDateString("en-US", { month: "long" })}{" "}
               {mobileSelectedDay?.day}
             </Typography>
+            {user && !isPastDate(mobileSelectedDay?.day) && mobileSelectedDay?.events.length > 0 && (
+              <Button
+                variant="none"
+                startIcon={<Add />}
+                onClick={() => {
+                  setShowDayEvents(false);
+                  onAddEvent(getSelectedDate(mobileSelectedDay.day));
+                }}
+                sx={{ color: theme.palette.primary.main }}
+              >
+                Add Event
+              </Button>
+            )}
             <IconButton onClick={() => setShowDayEvents(false)}>
               <Close />
             </IconButton>
           </Box>
 
           {mobileSelectedDay?.events.length > 0 ? (
-            mobileSelectedDay.events.map((event) => (
-              <Card
-                key={event.id}
-                onClick={() => {
-                  setShowDayEvents(false);
-                  onEventClick(event);
-                }}
-                sx={{
-                  mb: 2,
-                  cursor: "pointer",
-                  "&:hover": { bgcolor: "action.hover" },
-                }}
-              >
-                <CardContent>
-                  <Typography variant="caption" color="text.secondary">
-                    {event.date.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Typography>
-                  <Typography variant="h3" gutterBottom>
-                    {event.name}
-                  </Typography>
-                  <Box sx={{ display: "flex", gap: 1 }}>
-                    <Chip
-                      icon={<LocationOn />}
-                      label={event.location}
-                      size="small"
-                    />
-                    <Chip
-                      icon={<DirectionsRun />}
-                      label={event.distance}
-                      size="small"
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            ))
+            <>
+              {mobileSelectedDay.events.map((event) => (
+                <Card
+                  key={event.id}
+                  onClick={() => {
+                    setShowDayEvents(false);
+                    onEventClick(event);
+                  }}
+                  sx={{
+                    mb: 2,
+                    cursor: "pointer",
+                    "&:hover": { bgcolor: "action.hover" },
+                  }}
+                >
+                  <CardContent>
+                    <Typography variant="caption" color="text.secondary">
+                      {event.date.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Typography>
+                    <Typography variant="h3" gutterBottom>
+                      {event.name}
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <Chip
+                        icon={<LocationOn />}
+                        label={event.location}
+                        size="small"
+                      />
+                      <Chip
+                        icon={<DirectionsRun />}
+                        label={event.distance}
+                        size="small"
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </>
           ) : (
             <Box sx={{ textAlign: "center", py: 4 }}>
               <CalendarToday
@@ -911,7 +997,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
             </Box>
           )}
         </Box>
-      </Modal>
+      </Dialog>
     </Box>
   );
 }

@@ -24,6 +24,7 @@ import {
   InputLabel,
   Chip,
   useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { responsiveSpacing } from "../utils/responsive";
 import {
@@ -42,6 +43,7 @@ import {
 
 function Profile({ user }) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   // Get user data from Redux store
   const {
     profile: reduxProfile,
@@ -186,18 +188,29 @@ function Profile({ user }) {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", pb: responsiveSpacing.sectionGap }}>
+    <Box sx={{ pb: responsiveSpacing.sectionGap }}>
       {/* Profile Header with Cover */}
       <Box
         sx={{
           position: "relative",
-          height: 250,
+          height: isMobile ? 150 : 250,
           backgroundImage: profile.coverUrl
             ? `url(${profile.coverUrl})`
             : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, #764ba2 100%)`,
           backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
           backgroundPosition: "center",
-          mb: 8,
+          mb: isMobile ? 2 : 2,
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)",
+            pointerEvents: "none",
+          }
         }}
       >
         {isEditing && (
@@ -209,6 +222,7 @@ function Profile({ user }) {
               right: 16,
               bgcolor: "background.paper",
               "&:hover": { bgcolor: "action.hover" },
+              zIndex: 1,
             }}
           >
             {uploadingCover ? <HourglassEmpty /> : <CameraAlt />}
@@ -219,24 +233,25 @@ function Profile({ user }) {
         <Box
           sx={{
             position: "absolute",
-            bottom: -60,
-            left: { xs: "50%", sm: 32 },
-            transform: { xs: "translateX(-50%)", sm: "none" },
+            bottom: -25,
+            left: isMobile ? 2 : 32,
             display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            alignItems: { xs: "center", sm: "flex-end" },
-            gap: 2,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 1,
+            width: isMobile ? "calc(100% - 16px)" : "auto",
+            zIndex: 1,
           }}
         >
           <Box sx={{ position: "relative" }}>
             <Avatar
               src={profile.avatarUrl}
               sx={{
-                width: 120,
-                height: 120,
+                width: isMobile ? 100 : 120,
+                height: isMobile ? 100 : 120,
                 border: "4px solid",
                 borderColor: "background.paper",
-                fontSize: "3rem",
+                fontSize: isMobile ? "2.5rem" : "3rem",
                 bgcolor: theme.palette.primary.main,
                 cursor: isEditing ? "pointer" : "default",
               }}
@@ -267,14 +282,30 @@ function Profile({ user }) {
               </IconButton>
             )}
           </Box>
-          <Box sx={{ textAlign: { xs: "center", sm: "left" }, pb: 1 }}>
+          <Box 
+            sx={{ 
+              flex: 1, 
+              pb: 1,
+            }}
+          >
             <Typography
-              variant="h2"
-              sx={{ color: "white", textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
+              variant={isMobile ? "h6" : "h5"}
+              sx={{
+                fontWeight: 700,
+                color: "#fff",
+                textShadow: "0 2px 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.5)",
+              }}
             >
               {profile.displayName || "Runner"}
             </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.9)" }}>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: "#fff",
+                textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+                fontWeight: 500,
+              }}
+            >
               {user.email}
             </Typography>
           </Box>
@@ -298,26 +329,35 @@ function Profile({ user }) {
       </Box>
 
       {/* Tabs */}
-      <Box sx={{ px: responsiveSpacing.pageContainer }}>
+      <Box sx={{ px: isMobile ? 2 : responsiveSpacing.pageContainer }}>
         <Tabs
           value={activeTab}
           onChange={(e, newValue) => setActiveTab(newValue)}
+          variant={isMobile ? "fullWidth" : "standard"}
           sx={{
             borderBottom: 1,
             borderColor: "divider",
             mb: responsiveSpacing.sectionGap,
+            "& .MuiTab-root": {
+              minHeight: isMobile ? 56 : 64,
+              fontSize: isMobile ? "0.75rem" : "0.875rem",
+            },
           }}
         >
-          <Tab icon={<Person />} label="Profile" iconPosition="start" />
           <Tab
-            icon={<CalendarToday />}
-            label={`History (${pastEvents.length})`}
-            iconPosition="start"
+            icon={<Person fontSize={isMobile ? "small" : "medium"} />}
+            label="Profile"
+            iconPosition="top"
           />
           <Tab
-            icon={<EmojiEvents />}
-            label={`Badges (${badges.length})`}
-            iconPosition="start"
+            icon={<CalendarToday fontSize={isMobile ? "small" : "medium"} />}
+            label={isMobile ? `${pastEvents.length}` : `History (${pastEvents.length})`}
+            iconPosition="top"
+          />
+          <Tab
+            icon={<EmojiEvents fontSize={isMobile ? "small" : "medium"} />}
+            label={isMobile ? `${badges.length}` : `Badges (${badges.length})`}
+            iconPosition="top"
           />
         </Tabs>
 
@@ -333,6 +373,14 @@ function Profile({ user }) {
                   value={profile.displayName}
                   onChange={handleInputChange}
                   placeholder="Your name"
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  value={user.email}
+                  disabled
                   sx={{ mb: 2 }}
                 />
                 <TextField
@@ -394,107 +442,179 @@ function Profile({ user }) {
               </Box>
             ) : (
               <Box>
-                <Grid
-                  container
-                  spacing={2}
-                  sx={{ mb: responsiveSpacing.sectionGap }}
+                {/* Profile Details - Clean List Style */}
+                <Box
+                  sx={{
+                    mb: 3,
+                    bgcolor: isMobile ? "transparent" : "background.paper",
+                    borderRadius: isMobile ? 0 : 2,
+                    overflow: "hidden",
+                  }}
                 >
-                  <Grid item xs={12} sm={6}>
-                    <Card>
-                      <CardContent
-                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
-                      >
-                        <Person sx={{ color: theme.palette.primary.main }} />
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">
-                            Display Name
-                          </Typography>
-                          <Typography variant="body1">
-                            {profile.displayName || "Not set"}
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
+                  {/* Bio */}
                   {profile.bio && (
-                    <Grid item xs={12}>
-                      <Card>
-                        <CardContent sx={{ display: "flex", gap: 2 }}>
-                          <Description
-                            sx={{ color: theme.palette.primary.main }}
-                          />
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Bio
-                            </Typography>
-                            <Typography variant="body1">
-                              {profile.bio}
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 2,
+                        py: 2,
+                        px: isMobile ? 2 : 3,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                        bgcolor: "background.paper",
+                        mb: isMobile ? 1 : 0,
+                        borderRadius: isMobile ? 2 : 0,
+                      }}
+                    >
+                      <Description
+                        sx={{
+                          color: theme.palette.primary.main,
+                          fontSize: isMobile ? 24 : 28,
+                          mt: 0.5,
+                        }}
+                      />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mb: 0.5 }}
+                        >
+                          Bio
+                        </Typography>
+                        <Typography 
+                          variant="body1" 
+                          sx={{ 
+                            fontWeight: 500,
+                            wordBreak: "break-word",
+                            overflowWrap: "anywhere",
+                            whiteSpace: "normal"
+                          }}
+                        >
+                          {profile.bio}
+                        </Typography>
+                      </Box>
+                    </Box>
                   )}
-                  <Grid item xs={12} sm={6}>
-                    <Card>
-                      <CardContent
-                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
+
+                  {/* Location & Favorite Distance Row */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: isMobile ? "column" : "row",
+                      gap: isMobile ? 1 : 0,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        py: 2,
+                        px: isMobile ? 2 : 3,
+                        flex: 1,
+                        borderBottom: isMobile ? "none" : "1px solid",
+                        borderRight: isMobile ? "none" : "1px solid",
+                        borderColor: "divider",
+                        bgcolor: "background.paper",
+                        borderRadius: isMobile ? 2 : 0,
+                      }}
+                    >
+                      <LocationOn
+                        sx={{
+                          color: theme.palette.primary.main,
+                          fontSize: isMobile ? 24 : 28,
+                        }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mb: 0.5 }}
+                        >
+                          Location
+                        </Typography>
+                        <Typography variant="body1" fontWeight={500}>
+                          {profile.location || "Not set"}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        py: 2,
+                        px: isMobile ? 2 : 3,
+                        flex: 1,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                        bgcolor: "background.paper",
+                        borderRadius: isMobile ? 2 : 0,
+                      }}
+                    >
+                      <DirectionsRun
+                        sx={{
+                          color: theme.palette.primary.main,
+                          fontSize: isMobile ? 24 : 28,
+                        }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mb: 0.5 }}
+                        >
+                          Favorite Distance
+                        </Typography>
+                        <Typography variant="body1" fontWeight={500}>
+                          {profile.favoriteDistance || "Not set"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Club */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                      py: 2,
+                      px: isMobile ? 2 : 3,
+                      bgcolor: "background.paper",
+                      borderRadius: isMobile ? 2 : 0,
+                      mt: isMobile ? 1 : 0,
+                    }}
+                  >
+                    <Group
+                      sx={{
+                        color: theme.palette.primary.main,
+                        fontSize: isMobile ? 24 : 28,
+                      }}
+                    />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block", mb: 0.5 }}
                       >
-                        <LocationOn
-                          sx={{ color: theme.palette.primary.main }}
-                        />
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">
-                            Location
-                          </Typography>
-                          <Typography variant="body1">
-                            {profile.location || "Not set"}
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Card>
-                      <CardContent
-                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
-                      >
-                        <DirectionsRun
-                          sx={{ color: theme.palette.primary.main }}
-                        />
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">
-                            Favorite Distance
-                          </Typography>
-                          <Typography variant="body1">
-                            {profile.favoriteDistance || "Not set"}
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Card>
-                      <CardContent
-                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
-                      >
-                        <Group sx={{ color: theme.palette.primary.main }} />
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">
-                            Club
-                          </Typography>
-                          <Typography variant="body1">
-                            {profile.clubName || "Not set"}
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                </Grid>
+                        Club
+                      </Typography>
+                      <Typography variant="body1" fontWeight={500}>
+                        {profile.clubName || "Not set"}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
                 <Button
                   variant="contained"
                   startIcon={<Edit />}
                   onClick={() => setIsEditing(true)}
+                  fullWidth={isMobile}
+                  sx={{ borderRadius: isMobile ? 2 : 1 }}
                 >
                   Edit Profile
                 </Button>

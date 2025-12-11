@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -6,7 +6,7 @@ import { Box, CircularProgress } from "@mui/material";
 import { useSelector } from "react-redux";
 import { useAuthListener } from "./store/hooks/useAuthListener";
 import { useEventsListener } from "./store/hooks/useEventsListener";
-import { signOut } from "./services";
+import { signOut, getUserRole } from "./services";
 import theme from "./theme/theme";
 import MainLayout from "./components/MainLayout";
 import Auth from "./components/Auth";
@@ -16,6 +16,8 @@ import Profile from "./components/Profile";
 import AddEvent from "./components/AddEvent";
 import EditEvent from "./components/EditEvent";
 import EventDetails from "./components/EventDetails";
+import AdminMembers from "./components/AdminMembers";
+import SetupAccount from "./components/SetupAccount";
 
 function App() {
   // Initialize Redux listeners
@@ -26,10 +28,27 @@ function App() {
   const user = useSelector((state) => state.auth.user);
   const loading = useSelector((state) => state.auth.loading);
 
+  const [userRole, setUserRole] = useState(null);
+  const [roleLoading, setRoleLoading] = useState(true);
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // Load user role
+  useEffect(() => {
+    const loadUserRole = async () => {
+      if (user) {
+        const result = await getUserRole(user.uid);
+        if (result.success) {
+          setUserRole(result);
+        }
+      }
+      setRoleLoading(false);
+    };
+
+    loadUserRole();
+  }, [user]);
 
   const handleEventClick = (event) => {
     setSelectedEvent(event);
@@ -64,7 +83,7 @@ function App() {
     }
   };
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <Box
         sx={{
@@ -86,7 +105,12 @@ function App() {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Auth onClose={null} />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/setup-account" element={<SetupAccount />} />
+            <Route path="*" element={<Auth onClose={null} />} />
+          </Routes>
+        </BrowserRouter>
       </ThemeProvider>
     );
   }
@@ -95,7 +119,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
-        <MainLayout onLogout={handleLogout}>
+        <MainLayout onLogout={handleLogout} userRole={userRole}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route
@@ -119,6 +143,17 @@ function App() {
               }
             />
             <Route path="/profile" element={<Profile user={user} />} />
+            
+            {/* Admin Routes */}
+            {(userRole?.role === 'admin' || userRole?.role === 'moderator') && (
+              <Route
+                path="/admin/members"
+                element={
+                  <AdminMembers user={user} userRole={userRole} />
+                }
+              />
+            )}
+            
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </MainLayout>

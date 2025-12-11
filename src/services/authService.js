@@ -9,7 +9,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 // Create or update user document in Firestore
-const createUserDocument = async (user, isNewUser = false) => {
+const createUserDocument = async (user, isNewUser = false, additionalData = {}) => {
   const userRef = doc(db, 'users', user.uid);
   
   // Check if user document exists
@@ -20,10 +20,13 @@ const createUserDocument = async (user, isNewUser = false) => {
     await setDoc(userRef, {
       uid: user.uid,
       email: user.email,
-      displayName: user.displayName || user.email.split('@')[0],
-      role: 'user', // Default role
+      displayName: user.displayName || additionalData.displayName || user.email.split('@')[0],
+      role: additionalData.role || 'member', // Default role
+      clubId: additionalData.clubId || null,
+      status: 'active',
       createdAt: serverTimestamp(),
-      lastLogin: serverTimestamp()
+      lastLogin: serverTimestamp(),
+      ...additionalData
     }, { merge: true });
   } else {
     // Update last login
@@ -31,14 +34,18 @@ const createUserDocument = async (user, isNewUser = false) => {
       lastLogin: serverTimestamp()
     }, { merge: true });
   }
+  
+  // Return user data with role
+  const updatedUserDoc = await getDoc(userRef);
+  return updatedUserDoc.data();
 };
 
 // Sign in with email and password
 export const signInWithEmail = async (email, password) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    await createUserDocument(userCredential.user, false);
-    return { success: true, user: userCredential.user };
+    const userData = await createUserDocument(userCredential.user, false);
+    return { success: true, user: userCredential.user, userData };
   } catch (error) {
     console.error('Error signing in:', error);
     return { success: false, error: error.message };
