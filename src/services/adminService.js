@@ -70,6 +70,10 @@ export const inviteMember = async (memberData, clubId, adminUid) => {
 // Get all members for a club
 export const getClubMembers = async (clubId) => {
   try {
+    if (!clubId) {
+      return { success: false, error: 'Club ID is required', members: [] };
+    }
+    
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where('clubId', '==', clubId));
     const querySnapshot = await getDocs(q);
@@ -82,13 +86,17 @@ export const getClubMembers = async (clubId) => {
     return { success: true, members };
   } catch (error) {
     console.error('Error getting club members:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, members: [] };
   }
 };
 
 // Get pending invitations for a club
 export const getPendingInvitations = async (clubId) => {
   try {
+    if (!clubId) {
+      return { success: false, error: 'Club ID is required', invitations: [] };
+    }
+    
     const invitationsRef = collection(db, 'invitations');
     const q = query(
       invitationsRef, 
@@ -105,7 +113,7 @@ export const getPendingInvitations = async (clubId) => {
     return { success: true, invitations };
   } catch (error) {
     console.error('Error getting pending invitations:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, invitations: [] };
   }
 };
 

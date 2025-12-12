@@ -56,9 +56,56 @@ import {
   cancelInvitation,
 } from "../services";
 
-function AdminMembers({ user, clubId }) {
+function AdminMembers({ user, clubId, userRole }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  
+  // Permission helpers
+  const isAdmin = userRole === 'admin';
+  const isModerator = userRole === 'moderator';
+  
+  // Check if current user can edit a member
+  const canEditMember = (member) => {
+    if (member.uid === user.uid) return false; // Can't edit self
+    if (isAdmin) return true; // Admins can edit anyone
+    if (isModerator) {
+      // Moderators can only edit regular members, not admins or other moderators
+      return member.role === 'member';
+    }
+    return false;
+  };
+  
+  // Check if current user can remove a member
+  const canRemoveMember = (member) => {
+    if (member.uid === user.uid) return false; // Can't remove self
+    if (isAdmin) return true; // Admins can remove anyone
+    if (isModerator) {
+      // Moderators can only remove regular members
+      return member.role === 'member';
+    }
+    return false;
+  };
+  
+  // Get available roles for invitation
+  const getAvailableRoles = () => {
+    if (isAdmin) {
+      return ['member', 'moderator', 'admin'];
+    }
+    // Moderators can only invite as member
+    return ['member'];
+  };
+  
+  // Get available roles for editing
+  const getEditableRoles = (member) => {
+    if (isAdmin) {
+      return ['member', 'moderator', 'admin'];
+    }
+    if (isModerator) {
+      // Moderators can only change between member and moderator
+      return ['member', 'moderator'];
+    }
+    return ['member'];
+  };
   
   const [activeTab, setActiveTab] = useState(0);
   const [members, setMembers] = useState([]);
@@ -77,10 +124,18 @@ function AdminMembers({ user, clubId }) {
   });
 
   useEffect(() => {
-    loadData();
+    if (clubId) {
+      loadData();
+    }
   }, [clubId]);
 
   const loadData = async () => {
+    if (!clubId) {
+      showAlert("error", "Club ID not found");
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     try {
       const [membersResult, invitationsResult] = await Promise.all([
@@ -113,6 +168,12 @@ function AdminMembers({ user, clubId }) {
       showAlert("error", "Please fill in all required fields");
       return;
     }
+    
+    // Check if moderator is trying to invite as admin or moderator
+    if (isModerator && inviteForm.role !== 'member') {
+      showAlert("error", "Moderators can only invite members");
+      return;
+    }
 
     const result = await inviteMember(inviteForm, clubId, user.uid);
 
@@ -133,6 +194,12 @@ function AdminMembers({ user, clubId }) {
 
   const handleUpdateRole = async () => {
     if (!selectedMember) return;
+    
+    // Check if moderator is trying to set admin role
+    if (isModerator && selectedMember.role === 'admin') {
+      showAlert("error", "Moderators cannot assign admin role");
+      return;
+    }
 
     const result = await updateMemberRole(
       selectedMember.id,
@@ -150,6 +217,13 @@ function AdminMembers({ user, clubId }) {
   };
 
   const handleRemoveMember = async (memberId) => {
+    const member = members.find(m => m.id === memberId);
+    
+    if (!canRemoveMember(member)) {
+      showAlert("error", "You don't have permission to remove this member");
+      return;
+    }
+    
     if (!window.confirm("Are you sure you want to remove this member?")) {
       return;
     }
@@ -328,14 +402,14 @@ function AdminMembers({ user, clubId }) {
                                           setSelectedMember(member);
                                           setEditDialogOpen(true);
                                         }}
-                                        disabled={member.uid === user.uid}
+                                        disabled={!canEditMember(member)}
                                       >
                                         <Edit fontSize="small" />
                                       </IconButton>
                                       <IconButton
                                         size="small"
                                         onClick={() => handleRemoveMember(member.id)}
-                                        disabled={member.uid === user.uid}
+                                        disabled={!canRemoveMember(member)}
                                         color="error"
                                       >
                                         <Delete fontSize="small" />
@@ -414,27 +488,31 @@ function AdminMembers({ user, clubId }) {
                                 : "N/A"}
                             </TableCell>
                             <TableCell align="right">
-                              <Tooltip title="Edit Role">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => {
-                                    setSelectedMember(member);
-                                    setEditDialogOpen(true);
-                                  }}
-                                  disabled={member.uid === user.uid}
-                                >
-                                  <Edit fontSize="small" />
-                                </IconButton>
+                              <Tooltip title={canEditMember(member) ? "Edit Role" : "No permission"}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                      setSelectedMember(member);
+                                      setEditDialogOpen(true);
+                                    }}
+                                    disabled={!canEditMember(member)}
+                                  >
+                                    <Edit fontSize="small" />
+                                  </IconButton>
+                                </span>
                               </Tooltip>
-                              <Tooltip title="Remove Member">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleRemoveMember(member.id)}
-                                  disabled={member.uid === user.uid}
-                                  color="error"
-                                >
-                                  <Delete fontSize="small" />
-                                </IconButton>
+                              <Tooltip title={canRemoveMember(member) ? "Remove Member" : "No permission"}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleRemoveMember(member.id)}
+                                    disabled={!canRemoveMember(member)}
+                                    color="error"
+                                  >
+                                    <Delete fontSize="small" />
+                                  </IconButton>
+                                </span>
                               </Tooltip>
                             </TableCell>
                           </TableRow>
@@ -658,9 +736,11 @@ function AdminMembers({ user, clubId }) {
                   setInviteForm({ ...inviteForm, role: e.target.value })
                 }
               >
-                <MenuItem value="member">Member</MenuItem>
-                <MenuItem value="moderator">Moderator</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
+                {getAvailableRoles().map((role) => (
+                  <MenuItem key={role} value={role}>
+                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
 
@@ -742,9 +822,11 @@ function AdminMembers({ user, clubId }) {
                     setSelectedMember({ ...selectedMember, role: e.target.value })
                   }
                 >
-                  <MenuItem value="member">Member</MenuItem>
-                  <MenuItem value="moderator">Moderator</MenuItem>
-                  <MenuItem value="admin">Admin</MenuItem>
+                  {getEditableRoles(selectedMember).map((role) => (
+                    <MenuItem key={role} value={role}>
+                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Box>

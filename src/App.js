@@ -149,7 +149,7 @@ function App() {
               <Route
                 path="/admin/members"
                 element={
-                  <AdminMembers user={user} userRole={userRole} />
+                  <AdminMembers user={user} clubId={userRole?.clubId} userRole={userRole?.role} />
                 }
               />
             )}
