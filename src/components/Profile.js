@@ -188,12 +188,24 @@ function Profile({ user }) {
   }
 
   return (
-    <Box sx={{ pb: responsiveSpacing.sectionGap }}>
+    <Box
+      sx={{
+        overflow: "visible",
+        boxShadow: 3,
+        width: isMobile ? "100%" : "80%",
+        height: isMobile ? "auto" : "calc(100vh - 64px)",
+        display: "flex",
+        flexDirection: "column",
+        mx: "auto",
+        my: isMobile ? 0 : 4,
+        bgcolor: "background.paper",
+      }}
+    >
       {/* Profile Header with Cover */}
       <Box
         sx={{
           position: "relative",
-          height: isMobile ? 150 : 250,
+          height: isMobile ? 150 : 200,
           backgroundImage: profile.coverUrl
             ? `url(${profile.coverUrl})`
             : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, #764ba2 100%)`,
@@ -208,9 +220,10 @@ function Profile({ user }) {
             left: 0,
             right: 0,
             bottom: 0,
-            background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)",
+            background:
+              "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)",
             pointerEvents: "none",
-          }
+          },
         }}
       >
         {isEditing && (
@@ -282,9 +295,9 @@ function Profile({ user }) {
               </IconButton>
             )}
           </Box>
-          <Box 
-            sx={{ 
-              flex: 1, 
+          <Box
+            sx={{
+              flex: 1,
               pb: 1,
             }}
           >
@@ -293,14 +306,15 @@ function Profile({ user }) {
               sx={{
                 fontWeight: 700,
                 color: "#fff",
-                textShadow: "0 2px 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.5)",
+                textShadow:
+                  "0 2px 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.5)",
               }}
             >
               {profile.displayName || "Runner"}
             </Typography>
-            <Typography 
+            <Typography
               variant="body2"
-              sx={{ 
+              sx={{
                 color: "#fff",
                 textShadow: "0 1px 4px rgba(0,0,0,0.8)",
                 fontWeight: 500,
@@ -347,17 +361,17 @@ function Profile({ user }) {
           <Tab
             icon={<Person fontSize={isMobile ? "small" : "medium"} />}
             label="Profile"
-            iconPosition="top"
+            iconPosition="start"
           />
           <Tab
             icon={<CalendarToday fontSize={isMobile ? "small" : "medium"} />}
-            label={isMobile ? `${pastEvents.length}` : `History (${pastEvents.length})`}
-            iconPosition="top"
+            label="History"
+            iconPosition="start"
           />
           <Tab
             icon={<EmojiEvents fontSize={isMobile ? "small" : "medium"} />}
-            label={isMobile ? `${badges.length}` : `Badges (${badges.length})`}
-            iconPosition="top"
+            label="Badges"
+            iconPosition="start"
           />
         </Tabs>
 
@@ -426,6 +440,7 @@ function Profile({ user }) {
                   value={profile.clubName}
                   onChange={handleInputChange}
                   placeholder="Your running club"
+                  disabled
                   sx={{ mb: 3 }}
                 />
                 <Box sx={{ display: "flex", gap: 2 }}>
@@ -441,12 +456,19 @@ function Profile({ user }) {
                 </Box>
               </Box>
             ) : (
-              <Box>
+              <Box
+                sx={{ 
+                  maxWidth: 800,
+                  display: "flex", 
+                  flexDirection: "column", 
+                  justifyContent: "space-between",
+                  gap: 2,
+                 }}
+              >
                 {/* Profile Details - Clean List Style */}
                 <Box
                   sx={{
-                    mb: 3,
-                    bgcolor: isMobile ? "transparent" : "background.paper",
+                    mb: 2,
                     borderRadius: isMobile ? 0 : 2,
                     overflow: "hidden",
                   }}
@@ -456,15 +478,11 @@ function Profile({ user }) {
                     <Box
                       sx={{
                         display: "flex",
-                        alignItems: "flex-start",
+                        alignItems: "center",
                         gap: 2,
-                        py: 2,
                         px: isMobile ? 2 : 3,
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                        bgcolor: "background.paper",
-                        mb: isMobile ? 1 : 0,
                         borderRadius: isMobile ? 2 : 0,
+                        mt: isMobile ? 1 : 2,
                       }}
                     >
                       <Description
@@ -482,13 +500,13 @@ function Profile({ user }) {
                         >
                           Bio
                         </Typography>
-                        <Typography 
-                          variant="body1" 
-                          sx={{ 
+                        <Typography
+                          variant="body1"
+                          sx={{
                             fontWeight: 500,
                             wordBreak: "break-word",
                             overflowWrap: "anywhere",
-                            whiteSpace: "normal"
+                            whiteSpace: "normal",
                           }}
                         >
                           {profile.bio}
@@ -502,22 +520,46 @@ function Profile({ user }) {
                     sx={{
                       display: "flex",
                       flexDirection: isMobile ? "column" : "row",
-                      gap: isMobile ? 1 : 0,
                     }}
                   >
+                    {/* Club */}
                     <Box
                       sx={{
                         display: "flex",
                         alignItems: "center",
                         gap: 2,
-                        py: 2,
                         px: isMobile ? 2 : 3,
-                        flex: 1,
-                        borderBottom: isMobile ? "none" : "1px solid",
-                        borderRight: isMobile ? "none" : "1px solid",
-                        borderColor: "divider",
-                        bgcolor: "background.paper",
                         borderRadius: isMobile ? 2 : 0,
+                        mt: isMobile ? 1 : 2,
+                      }}
+                    >
+                      <Group
+                        sx={{
+                          color: theme.palette.primary.main,
+                          fontSize: isMobile ? 24 : 28,
+                        }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mb: 0.5 }}
+                        >
+                          Club
+                        </Typography>
+                        <Typography variant="body1" fontWeight={500}>
+                          {profile.clubName || "Not set"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        px: isMobile ? 2 : 3,
+                        borderRadius: isMobile ? 2 : 0,
+                        mt: isMobile ? 1 : 2,
                       }}
                     >
                       <LocationOn
@@ -545,13 +587,9 @@ function Profile({ user }) {
                         display: "flex",
                         alignItems: "center",
                         gap: 2,
-                        py: 2,
                         px: isMobile ? 2 : 3,
-                        flex: 1,
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                        bgcolor: "background.paper",
                         borderRadius: isMobile ? 2 : 0,
+                        mt: isMobile ? 1 : 2,
                       }}
                     >
                       <DirectionsRun
@@ -574,39 +612,6 @@ function Profile({ user }) {
                       </Box>
                     </Box>
                   </Box>
-
-                  {/* Club */}
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      py: 2,
-                      px: isMobile ? 2 : 3,
-                      bgcolor: "background.paper",
-                      borderRadius: isMobile ? 2 : 0,
-                      mt: isMobile ? 1 : 0,
-                    }}
-                  >
-                    <Group
-                      sx={{
-                        color: theme.palette.primary.main,
-                        fontSize: isMobile ? 24 : 28,
-                      }}
-                    />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: "block", mb: 0.5 }}
-                      >
-                        Club
-                      </Typography>
-                      <Typography variant="body1" fontWeight={500}>
-                        {profile.clubName || "Not set"}
-                      </Typography>
-                    </Box>
-                  </Box>
                 </Box>
 
                 <Button
@@ -614,7 +619,7 @@ function Profile({ user }) {
                   startIcon={<Edit />}
                   onClick={() => setIsEditing(true)}
                   fullWidth={isMobile}
-                  sx={{ borderRadius: isMobile ? 2 : 1 }}
+                  sx={{ borderRadius: isMobile ? 2 : 1, mb: 2 }}
                 >
                   Edit Profile
                 </Button>

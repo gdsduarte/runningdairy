@@ -9,12 +9,20 @@ export const useEventsListener = () => {
   const loading = useSelector((state) => state.events.loading);
   const selectedYear = useSelector((state) => state.events.selectedYear);
   const selectedMonth = useSelector((state) => state.events.selectedMonth);
+  const userClubId = useSelector((state) => state.user.profile?.clubId);
 
   useEffect(() => {
+    if (!userClubId) {
+      dispatch(setEvents([]));
+      dispatch(setLoading(false));
+      return;
+    }
+
     dispatch(setLoading(true));
 
-    // Subscribe only to events for the currently selected month to reduce reads
+    // Subscribe only to events for the currently selected month and user's club
     const unsubscribe = subscribeToEventsForMonth(
+      userClubId,
       selectedYear,
       selectedMonth,
       (eventsData) => {
@@ -26,7 +34,7 @@ export const useEventsListener = () => {
     );
 
     return () => unsubscribe();
-  }, [dispatch, selectedYear, selectedMonth]);
+  }, [dispatch, selectedYear, selectedMonth, userClubId]);
 
   return { events, loading };
 };

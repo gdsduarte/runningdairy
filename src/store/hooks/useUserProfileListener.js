@@ -31,26 +31,32 @@ export const useUserProfileListener = (userId) => {
 
     dispatch(setLoading(true));
 
+    let unsubscribeEvents = null;
+
     // Subscribe to user profile
     const unsubscribeProfile = subscribeToUserProfile(userId, (profileData) => {
       dispatch(setUserProfile(profileData));
-    });
-
-    // Subscribe to user events
-    const unsubscribeEvents = subscribeToUserEvents(userId, (events) => {
-      dispatch(setUserEvents(events));
       
-      // Calculate past events and badges
-      const past = getUserPastEvents(events);
-      dispatch(setPastEvents(past));
-      
-      const earnedBadges = calculateUserBadges(past);
-      dispatch(setBadges(earnedBadges));
+      // Once we have profile with clubId, subscribe to events
+      if (profileData?.clubId && !unsubscribeEvents) {
+        unsubscribeEvents = subscribeToUserEvents(userId, profileData.clubId, (events) => {
+          dispatch(setUserEvents(events));
+          
+          // Calculate past events and badges
+          const past = getUserPastEvents(events);
+          dispatch(setPastEvents(past));
+          
+          const earnedBadges = calculateUserBadges(past);
+          dispatch(setBadges(earnedBadges));
+        });
+      }
     });
 
     return () => {
       unsubscribeProfile();
-      unsubscribeEvents();
+      if (unsubscribeEvents) {
+        unsubscribeEvents();
+      }
     };
   }, [userId, dispatch]);
 

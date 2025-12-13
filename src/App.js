@@ -16,7 +16,7 @@ import Profile from "./components/Profile";
 import AddEvent from "./components/AddEvent";
 import EditEvent from "./components/EditEvent";
 import EventDetails from "./components/EventDetails";
-import AdminMembers from "./components/AdminMembers";
+import AdminPanel from "./components/AdminPanel";
 import SetupAccount from "./components/SetupAccount";
 
 function App() {
@@ -27,6 +27,7 @@ function App() {
   // Get auth state from Redux
   const user = useSelector((state) => state.auth.user);
   const loading = useSelector((state) => state.auth.loading);
+  const userProfile = useSelector((state) => state.user.profile);
 
   const [userRole, setUserRole] = useState(null);
   const [roleLoading, setRoleLoading] = useState(true);
@@ -127,6 +128,7 @@ function App() {
               element={
                 <Dashboard
                   user={user}
+                  userProfile={userProfile}
                   onEventClick={handleEventClick}
                   onAddEvent={handleAddEvent}
                 />
@@ -149,7 +151,7 @@ function App() {
               <Route
                 path="/admin/members"
                 element={
-                  <AdminMembers user={user} clubId={userRole?.clubId} userRole={userRole?.role} />
+                  <AdminPanel user={user} clubId={userRole?.clubId} userRole={userRole?.role} />
                 }
               />
             )}
@@ -162,6 +164,7 @@ function App() {
         {showAddEvent && (
           <AddEvent
             user={user}
+            userProfile={userProfile}
             selectedDate={selectedDate}
             onClose={() => {
               setShowAddEvent(false);

@@ -1,4 +1,4 @@
-import { db, auth } from '../firebase';
+import { db} from '../firebase';
 import { 
   collection, 
   doc, 
@@ -9,13 +9,8 @@ import {
   where, 
   serverTimestamp,
   updateDoc,
-  deleteDoc
 } from 'firebase/firestore';
-import { 
-  sendPasswordResetEmail,
-  createUserWithEmailAndPassword,
-  sendSignInLinkToEmail
-} from 'firebase/auth';
+import { sendInvitationEmail } from './emailService';
 
 // Invite a new member to the club
 export const inviteMember = async (memberData, clubId, adminUid) => {
@@ -31,8 +26,19 @@ export const inviteMember = async (memberData, clubId, adminUid) => {
       return { success: false, error: 'User with this email already exists' };
     }
 
-    // Create invitation document
-    const invitationId = `${clubId}_${Date.now()}`;
+    // Get club details for email
+    const clubRef = doc(db, 'clubs', clubId);
+    const clubSnap = await getDoc(clubRef);
+    const clubName = clubSnap.exists() ? clubSnap.data().name : 'Running Club';
+
+    // Create secure invitation token with crypto random component
+    const randomBytes = new Uint8Array(16);
+    crypto.getRandomValues(randomBytes);
+    const randomString = Array.from(randomBytes)
+      .map(b => b.toString(36))
+      .join('')
+      .slice(0, 20);
+    const invitationId = `${clubId}_${Date.now()}_${randomString}`;
     const invitationRef = doc(db, 'invitations', invitationId);
     
     const invitationData = {
@@ -48,18 +54,18 @@ export const inviteMember = async (memberData, clubId, adminUid) => {
 
     await setDoc(invitationRef, invitationData);
 
-    // Generate invitation link
-    const invitationLink = `${window.location.origin}/setup-account?token=${invitationId}`;
+    // Send invitation email
+    const emailResult = await sendInvitationEmail(email, displayName, invitationId, clubName);
 
-    // In a real implementation, you would send this via email service
-    // For now, we'll return the link
-    console.log('Invitation link:', invitationLink);
+    if (!emailResult.success) {
+      console.warn('Email sending failed:', emailResult.error);
+      // Don't fail the invitation if email fails
+    }
 
     return { 
       success: true, 
       invitationId,
-      invitationLink,
-      message: 'Invitation created successfully. Send this link to the member.' 
+      message: `Invitation sent to ${email}. They will receive an email with instructions to set up their account.` 
     };
   } catch (error) {
     console.error('Error inviting member:', error);
@@ -200,7 +206,7 @@ export const verifyInvitation = async (invitationId) => {
 };
 
 // Complete member setup (called after password is set)
-export const completeMemberSetup = async (invitationId, userId, password) => {
+export const completeMemberSetup = async (invitationId, userId, userEmail, password) => {
   try {
     // Get invitation details
     const invitationRef = doc(db, 'invitations', invitationId);
@@ -211,6 +217,14 @@ export const completeMemberSetup = async (invitationId, userId, password) => {
     }
 
     const invitationData = invitationDoc.data();
+
+    // SECURITY: Verify email matches the invitation
+    if (invitationData.email.toLowerCase() !== userEmail.toLowerCase()) {
+      return { 
+        success: false, 
+        error: 'This invitation was sent to a different email address. Please use the correct email or request a new invitation.' 
+      };
+    }
 
     // Create user document
     const userRef = doc(db, 'users', userId);

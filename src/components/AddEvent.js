@@ -20,7 +20,7 @@ import {
 } from "@mui/material";
 import { Close, CalendarToday, Repeat } from "@mui/icons-material";
 
-function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
+function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
   // Format the selected date or use today
   const defaultDate = selectedDate || new Date();
   const dateString = defaultDate.toISOString().split("T")[0];
@@ -53,6 +53,13 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
     setError("");
     setLoading(true);
 
+    // Validate user has a clubId
+    if (!userProfile?.clubId) {
+      setError("You must be a member of a club to create events.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const eventDateTime = new Date(`${eventData.date}T${eventData.time}`);
 
@@ -64,15 +71,73 @@ function AddEvent({ onClose, onEventAdded, user, selectedDate }) {
         description: eventData.description,
         date: eventDateTime,
         attendees: [],
+        isRecurring: eventData.isRecurring,
+        recurringPattern: eventData.isRecurring ? eventData.recurringPattern : null,
+        recurringEndDate: eventData.isRecurring ? eventData.recurringEndDate : null,
       };
 
-      const result = await createEvent(newEvent, user.uid, user.email);
+      // If it's a recurring event, create multiple instances
+      if (eventData.isRecurring && eventData.recurringPattern && eventData.recurringEndDate) {
+        const endDate = new Date(eventData.recurringEndDate);
+        endDate.setHours(23, 59, 59, 999); // Set to end of day
+        const eventsToCreate = [];
+        let currentDate = new Date(eventDateTime);
 
-      if (result.success) {
-        onEventAdded?.();
-        onClose();
+        console.log('Creating recurring events from', currentDate, 'to', endDate);
+        console.log('Pattern:', eventData.recurringPattern);
+
+        // Generate recurring events
+        while (currentDate <= endDate) {
+          eventsToCreate.push({
+            ...newEvent,
+            date: new Date(currentDate),
+          });
+
+          // Calculate next occurrence based on pattern
+          const pattern = eventData.recurringPattern;
+          
+          if (pattern === 'daily') {
+            currentDate.setDate(currentDate.getDate() + 1);
+          } else if (pattern.startsWith('weekly-')) {
+            // For specific day patterns (weekly-monday, etc.)
+            currentDate.setDate(currentDate.getDate() + 7);
+          } else if (pattern === 'biweekly') {
+            currentDate.setDate(currentDate.getDate() + 14);
+          } else if (pattern === 'monthly') {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+          } else {
+            // Unknown pattern, exit loop
+            console.warn('Unknown pattern:', pattern);
+            break;
+          }
+        }
+
+        console.log(`Creating ${eventsToCreate.length} recurring events`);
+
+        // Create all recurring events
+        const results = await Promise.all(
+          eventsToCreate.map(event => createEvent(event, user.uid, user.email, userProfile?.clubId))
+        );
+
+        const hasError = results.some(r => !r.success);
+        if (hasError) {
+          setError("Some events failed to create. Please try again.");
+          console.error('Some events failed:', results.filter(r => !r.success));
+        } else {
+          console.log('All recurring events created successfully');
+          onEventAdded?.();
+          onClose();
+        }
       } else {
-        setError(result.error);
+        // Single event creation
+        const result = await createEvent(newEvent, user.uid, user.email, userProfile?.clubId);
+
+        if (result.success) {
+          onEventAdded?.();
+          onClose();
+        } else {
+          setError(result.error);
+        }
       }
     } catch (err) {
       console.error("Error adding event:", err);

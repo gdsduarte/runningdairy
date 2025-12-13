@@ -15,8 +15,6 @@ import {
   DirectionsRun,
   Schedule,
   CheckCircle,
-  Stars,
-  PeopleAlt,
 } from "@mui/icons-material";
 
 function Dashboard({ user, onEventClick, onAddEvent }) {
@@ -36,51 +34,90 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
     (event) => event.createdBy === user.uid && event.date >= now
   );
 
-  // Get next 3 upcoming events
-  const nextEvents = upcomingEvents.slice(0, 3);
+  // Get next 3 upcoming events (non-recurring)
+  const nextEvents = upcomingEvents
+    .filter((event) => !event.isRecurring)
+    .slice(0, 3);
 
-  // Calculate monthly statistics for the last 6 months
+  // Get recurring events and group them by name to show only next occurrence
+  const recurringEvents = upcomingEvents.filter((event) => event.isRecurring);
+
+  // Group recurring events by name and get the next occurrence for each
+  const groupedRecurringEvents = recurringEvents.reduce((acc, event) => {
+    const key = event.name;
+    if (!acc[key] || event.date < acc[key].date) {
+      acc[key] = event;
+    }
+    return acc;
+  }, {});
+
+  const nextRecurringEvents = Object.values(groupedRecurringEvents);
+
+  // Calculate monthly statistics: 2 months before, current month, 3 months after
   const getMonthlyStats = () => {
     const months = [];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    for (let i = 5; i >= 0; i--) {
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    // Loop from 2 months before to 3 months after (total 6 months)
+    for (let i = -2; i <= 3; i++) {
       const date = new Date();
-      date.setMonth(date.getMonth() - i);
+      date.setMonth(date.getMonth() + i);
       const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
+
       // All events in this month (past and upcoming)
-      const totalEventsInMonth = events.filter(event => {
-        const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
+      const totalEventsInMonth = events.filter((event) => {
+        const eventDate =
+          event.date instanceof Date ? event.date : new Date(event.date);
         return eventDate >= monthStart && eventDate <= monthEnd;
       });
-      
+
       // Events user completed in this month (past only)
-      const completedEventsInMonth = events.filter(event => {
-        const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
-        return eventDate >= monthStart && eventDate <= monthEnd &&
-               eventDate < now &&
-               event.attendees?.some((attendee) => attendee.uid === user.uid);
+      const completedEventsInMonth = events.filter((event) => {
+        const eventDate =
+          event.date instanceof Date ? event.date : new Date(event.date);
+        return (
+          eventDate >= monthStart &&
+          eventDate <= monthEnd &&
+          eventDate < now &&
+          event.attendees?.some((attendee) => attendee.uid === user.uid)
+        );
       });
-      
+
       months.push({
         name: monthNames[date.getMonth()],
         total: totalEventsInMonth.length,
         completed: completedEventsInMonth.length,
       });
     }
-    
+
     return months;
   };
 
   const monthlyStats = getMonthlyStats();
-  const maxCount = Math.max(...monthlyStats.map(m => m.total), 1);
+  const maxCount = Math.max(...monthlyStats.map((m) => m.total), 1);
 
   // Get total events attended (past events)
   const pastEvents = events.filter((event) => {
-    const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
-    return eventDate < now && event.attendees?.some((attendee) => attendee.uid === user.uid);
+    const eventDate =
+      event.date instanceof Date ? event.date : new Date(event.date);
+    return (
+      eventDate < now &&
+      event.attendees?.some((attendee) => attendee.uid === user.uid)
+    );
   });
 
   const formatTime = (date) => {
@@ -111,28 +148,30 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
   return (
     <Box
       sx={{
-        p: isMobile ? 2 : 4,
+        p: isMobile ? 2 : 3,
         maxWidth: isMobile ? "100%" : 1400,
         mx: "auto",
-        pb: isMobile ? 10 : 4,
+        pb: isMobile ? 10 : 3,
         bgcolor: isMobile ? "background.default" : "#f5f5f5",
-        minHeight: "100vh",
+        height: "100vh",
+        overflow: isMobile ? "auto" : "hidden",
       }}
     >
-      <Box>
-        <Grid container spacing={2.5}>
+      <Box sx={{ height: "100%" }}>
+        <Grid container spacing={2} sx={{ height: "100%" }}>
           {/* LEFT COLUMN - Active Events */}
           <Grid item size={{ xs: 12, md: 4 }}>
             {/* Active Events Section */}
             <Card
               sx={{
-                mb: 2.5,
                 boxShadow: { xs: 0, md: 4 },
                 bgcolor: "white",
-                height: "calc(100vh - 64px)",
-                ...isMobile && {
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                ...(isMobile && {
                   height: "auto",
-                },
+                }),
               }}
             >
               <CardContent sx={{ p: 2.5 }}>
@@ -177,7 +216,14 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
 
                 {nextEvents.length > 0 ? (
                   <Box
-                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                      overflowY: "auto",
+                      overflowX: "hidden",
+                      flex: 1,
+                    }}
                   >
                     {nextEvents.slice(0, 3).map((event) => (
                       <Box
@@ -337,18 +383,167 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                     </Typography>
                   </Box>
                 )}
+
+                {/* Recurrent Events Section */}
+                <Box sx={{ mt: 3, pt: 3, borderTop: "1px solid #e5e7eb" }}>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontSize: "0.875rem",
+                      fontWeight: 600,
+                      color: "#6b7280",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
+                  >
+                    <Box sx={{ fontSize: "1rem" }}>🔁</Box>
+                    Recurrent Events
+                  </Typography>
+                  {nextRecurringEvents.length > 0 ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 1.5,
+                      }}
+                    >
+                      {nextRecurringEvents.slice(0, 2).map((event) => (
+                        <Box
+                          key={event.id}
+                          sx={{
+                            cursor: "pointer",
+                            p: 1.5,
+                            borderRadius: 2,
+                            bgcolor: "#FEF3C7",
+                            border: "1px solid #FCD34D",
+                            transition: "transform 0.2s",
+                            "&:hover": {
+                              transform: "translateY(-2px)",
+                            },
+                          }}
+                          onClick={() => onEventClick(event)}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 1.5,
+                              alignItems: "center",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 1.5,
+                                background:
+                                  "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Box sx={{ fontSize: 20, opacity: 0.9 }}>🔁</Box>
+                            </Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography
+                                sx={{
+                                  fontSize: "0.875rem",
+                                  fontWeight: 600,
+                                  color: "#1f2937",
+                                  mb: 0.3,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {event.name}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontSize: "0.75rem",
+                                    color: "#92400e",
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {event.recurringPattern === "weekly"
+                                    ? "Weekly"
+                                    : event.recurringPattern === "monthly"
+                                    ? "Monthly"
+                                    : event.recurringPattern === "daily"
+                                    ? "Daily"
+                                    : "Recurring"}
+                                </Typography>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                  }}
+                                >
+                                  <DirectionsRun
+                                    sx={{ fontSize: 14, color: "#D97706" }}
+                                  />
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      fontSize: "0.75rem",
+                                      color: "#92400e",
+                                    }}
+                                  >
+                                    {event.distance}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+                          </Box>
+                        </Box>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Box sx={{ textAlign: "center", py: 3 }}>
+                      <Box sx={{ fontSize: 32, mb: 1, opacity: 0.3 }}>🔁</Box>
+                      <Typography
+                        color="text.secondary"
+                        sx={{ fontSize: "0.813rem" }}
+                      >
+                        No recurrent events scheduled
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
               </CardContent>
             </Card>
           </Grid>
 
           {/* MIDDLE COLUMN - Recent Activity & Community */}
-          <Grid item size={{ xs: 12, md: 5 }}>
+          <Grid
+            item
+            size={{ xs: 12, md: 5 }}
+            sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+          >
             {/* Events I'm Attending Card */}
             <Card
               sx={{
-                mb: 2.5,
+                mb: 2,
                 boxShadow: { xs: 0, md: 4 },
                 bgcolor: "white",
+                //minHeight: isMobile ? "auto" : "30%",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               <CardContent sx={{ p: 2.5 }}>
@@ -357,7 +552,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    mb: 2.5,
+                    mb: 2,
                   }}
                 >
                   <Typography
@@ -393,12 +588,12 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                       display: "flex",
                       flexDirection: "column",
                       gap: 1.5,
-                      maxHeight: 320,
                       overflowY: "auto",
-                      pr: 0.5,
+                      flex: 1,
+                      pt: 0.5,
                     }}
                   >
-                    {myUpcomingEvents.slice(0, 3).map((event) => (
+                    {myUpcomingEvents.slice(0, 2).map((event) => (
                       <Box
                         key={event.id}
                         sx={{
@@ -545,24 +740,37 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
             {/* Statistics Card */}
             <Card
               sx={{
-                mb: 2.5,
                 boxShadow: { xs: 0, md: 4 },
                 bgcolor: "white",
+                flex: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                //minHeight: isMobile ? "auto" : "30%",
               }}
-            >
-              <CardContent sx={{ p: 2.5 }}>
+              >
+              <CardContent
+                sx={{
+                  p: 2.5,
+                  overflow: "auto",
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
                 <Box
                   sx={{
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
                     mb: 2.5,
+                    flexShrink: 0,
                   }}
                 >
                   <Typography
                     variant="h3"
                     sx={{
-                      fontSize: "1rem",
+                      fontSize: "0.938rem",
                       fontWeight: 600,
                       color: "#9ca3af",
                       textTransform: "uppercase",
@@ -571,25 +779,24 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                   >
                     Activity
                   </Typography>
-                  <Typography
-                    sx={{ fontSize: "0.75rem", color: "#9ca3af" }}
-                  >
-                    Last 6 months
+                  <Typography sx={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+                    6 month view
                   </Typography>
                 </Box>
 
                 {/* Monthly Bar Chart */}
                 <Box
                   sx={{
-                    height: 180,
+                    height: 170,
                     borderRadius: 2,
                     bgcolor: "#f9fafb",
                     display: "flex",
                     alignItems: "flex-end",
                     justifyContent: "space-around",
-                    p: 2,
+                    p: 1.5,
                     gap: 1,
-                    mb: 2,
+                    mb: 1.5,
+                    flexShrink: 0,
                   }}
                 >
                   {monthlyStats.map((month, index) => (
@@ -616,8 +823,11 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                         {/* Total Events Bar (Background) */}
                         <Box
                           sx={{
-                            width: "100%",
-                            height: maxCount > 0 ? `${(month.total / maxCount) * 120}px` : "4px",
+                            width: "90%",
+                            height:
+                              maxCount > 0
+                                ? `${(month.total / maxCount) * 100}px`
+                                : "4px",
                             minHeight: "4px",
                             bgcolor: month.total > 0 ? "#e0e7ff" : "#e5e7eb",
                             borderRadius: 1,
@@ -632,14 +842,17 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                               bottom: 0,
                               left: 0,
                               right: 0,
-                              height: month.total > 0 ? `${(month.completed / month.total) * 100}%` : "0%",
+                              height:
+                                month.total > 0
+                                  ? `${(month.completed / month.total) * 100}%`
+                                  : "0%",
                               bgcolor: theme.palette.primary.main,
                               borderRadius: 1,
                               transition: "all 0.3s ease",
                             }}
                           />
                         </Box>
-                        
+
                         {/* Count Badge */}
                         {month.total > 0 && (
                           <Box
@@ -655,7 +868,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                           </Box>
                         )}
                       </Box>
-                      
+
                       <Typography
                         sx={{
                           fontSize: "0.688rem",
@@ -670,7 +883,15 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                 </Box>
 
                 {/* Legend */}
-                <Box sx={{ display: "flex", justifyContent: "center", gap: 3, mb: 2 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: 3,
+                    mb: 1.5,
+                    flexShrink: 0,
+                  }}
+                >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Box
                       sx={{
@@ -705,7 +926,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                     sx={{
                       flex: 1,
                       textAlign: "center",
-                      py: 1.5,
+                      py: 1,
                       bgcolor: "#f9fafb",
                       borderRadius: 2,
                     }}
@@ -729,7 +950,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                     sx={{
                       flex: 1,
                       textAlign: "center",
-                      py: 1.5,
+                      py: 1,
                       bgcolor: "#f9fafb",
                       borderRadius: 2,
                     }}
@@ -755,28 +976,36 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
           </Grid>
 
           {/* RIGHT COLUMN - Events Attending & Statistics */}
-          <Grid item size={{ xs: 12, md: 3 }}>
+          <Grid
+            item
+            size={{ xs: 12, md: 3 }}
+            sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+          >
             {/* Recent Activity Card */}
             <Card
               sx={{
-                mb: 2.5,
+                mb: 2,
                 boxShadow: { xs: 0, md: 4 },
                 bgcolor: "white",
+                maxHeight: "50%",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
-              <CardContent sx={{ p: 2.5 }}>
+              <CardContent sx={{ p: 2, flex: 1, overflow: "auto" }}>
                 <Box
                   sx={{
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    mb: 2.5,
+                    mb: 2,
                   }}
                 >
                   <Typography
                     variant="h3"
                     sx={{
-                      fontSize: "1rem",
+                      fontSize: "0.938rem",
                       fontWeight: 600,
                       color: "#9ca3af",
                       textTransform: "uppercase",
@@ -890,9 +1119,13 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                 boxShadow: { xs: 0, md: 4 },
                 bgcolor: "#6366f1",
                 color: "white",
+                flex: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
-              <CardContent sx={{ p: 2.5 }}>
+              <CardContent sx={{ p: 2, overflow: "auto", flex: 1 }}>
                 <Typography
                   variant="h3"
                   sx={{

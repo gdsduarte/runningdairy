@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -27,9 +28,17 @@ function SetupAccount() {
   const [success, setSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
+    email: "",
     password: "",
     confirmPassword: "",
   });
+
+  // Pre-fill email from invitation when loaded
+  useEffect(() => {
+    if (invitation?.email) {
+      setFormData(prev => ({ ...prev, email: invitation.email }));
+    }
+  }, [invitation]);
 
   useEffect(() => {
     if (token) {
@@ -82,10 +91,11 @@ function SetupAccount() {
         formData.password
       );
 
-      // Complete member setup in Firestore
+      // Complete member setup in Firestore with email verification
       const setupResult = await completeMemberSetup(
         token,
         userCredential.user.uid,
+        userCredential.user.email,
         formData.password
       );
 
@@ -219,16 +229,26 @@ function SetupAccount() {
 
           <CardContent sx={{ p: 4 }}>
             {invitation && (
-              <Box sx={{ mb: 3, p: 2, bgcolor: "#EEF2FF", borderRadius: 1 }}>
-                <Typography variant="body2" color="text.secondary">
-                  You've been invited to join as:
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5 }}>
-                  {invitation.displayName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {invitation.email}
-                </Typography>
+              <Box sx={{ mb: 3 }}>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    Email Verification Required
+                  </Typography>
+                  <Typography variant="body2">
+                    Your account will be created with: <strong>{invitation.email}</strong>
+                  </Typography>
+                </Alert>
+                {/* <Box sx={{ p: 2, bgcolor: "#EEF2FF", borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {invitation.displayName}, you've been invited to join as: {invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1)}
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5 }}>
+                    {invitation.displayName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Role: {invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1)}
+                  </Typography>
+                </Box> */}
               </Box>
             )}
 

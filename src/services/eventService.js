@@ -15,9 +15,13 @@ import {
   Timestamp
 } from 'firebase/firestore';
 
-// Subscribe to all events with real-time updates
-export const subscribeToEvents = (callback, errorCallback) => {
-  const q = query(collection(db, 'events'), orderBy('date', 'asc'));
+// Subscribe to all events with real-time updates (filtered by clubId)
+export const subscribeToEvents = (clubId, callback, errorCallback) => {
+  const q = query(
+    collection(db, 'events'),
+    where('clubId', '==', clubId),
+    orderBy('date', 'asc')
+  );
   
   const unsubscribe = onSnapshot(q, (snapshot) => {
     const eventsData = snapshot.docs.map(doc => ({
@@ -31,14 +35,15 @@ export const subscribeToEvents = (callback, errorCallback) => {
   return unsubscribe;
 };
 
-// Subscribe to events for a specific month with real-time updates
-export const subscribeToEventsForMonth = (year, month, callback, errorCallback) => {
+// Subscribe to events for a specific month with real-time updates (filtered by clubId)
+export const subscribeToEventsForMonth = (clubId, year, month, callback, errorCallback) => {
   // Create start and end dates for the month
   const startDate = new Date(year, month, 1);
   const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
   
   const q = query(
     collection(db, 'events'),
+    where('clubId', '==', clubId),
     where('date', '>=', Timestamp.fromDate(startDate)),
     where('date', '<=', Timestamp.fromDate(endDate)),
     orderBy('date', 'asc')
@@ -74,7 +79,7 @@ export const subscribeToEvent = (eventId, callback) => {
 };
 
 // Create a new event
-export const createEvent = async (eventData, userId, userEmail) => {
+export const createEvent = async (eventData, userId, userEmail, clubId) => {
   try {
     const docRef = await addDoc(collection(db, 'events'), {
       ...eventData,
@@ -82,6 +87,7 @@ export const createEvent = async (eventData, userId, userEmail) => {
       attendees: [],
       createdBy: userId,
       createdByEmail: userEmail,
+      clubId: clubId,
       createdAt: Timestamp.now()
     });
     return { success: true, id: docRef.id };

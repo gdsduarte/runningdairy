@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, Fragment } from "react";
 import {
   Box,
@@ -60,54 +61,54 @@ import { getClubDetails } from "../services/clubService";
 function AdminPanel({ user, clubId, userRole }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  
+
   // Permission helpers
-  const isAdmin = userRole === 'admin';
-  const isModerator = userRole === 'moderator';
-  
+  const isAdmin = userRole === "admin";
+  const isModerator = userRole === "moderator";
+
   // Check if current user can edit a member
   const canEditMember = (member) => {
     if (member.uid === user.uid) return false; // Can't edit self
     if (isAdmin) return true; // Admins can edit anyone
     if (isModerator) {
       // Moderators can only edit regular members, not admins or other moderators
-      return member.role === 'member';
+      return member.role === "member";
     }
     return false;
   };
-  
+
   // Check if current user can remove a member
   const canRemoveMember = (member) => {
     if (member.uid === user.uid) return false; // Can't remove self
     if (isAdmin) return true; // Admins can remove anyone
     if (isModerator) {
       // Moderators can only remove regular members
-      return member.role === 'member';
+      return member.role === "member";
     }
     return false;
   };
-  
+
   // Get available roles for invitation
   const getAvailableRoles = () => {
     if (isAdmin) {
-      return ['member', 'moderator', 'admin'];
+      return ["member", "moderator", "admin"];
     }
     // Moderators can only invite as member
-    return ['member'];
+    return ["member"];
   };
-  
+
   // Get available roles for editing
   const getEditableRoles = (member) => {
     if (isAdmin) {
-      return ['member', 'moderator', 'admin'];
+      return ["member", "moderator", "admin"];
     }
     if (isModerator) {
       // Moderators can only change between member and moderator
-      return ['member', 'moderator'];
+      return ["member", "moderator"];
     }
-    return ['member'];
+    return ["member"];
   };
-  
+
   const [activeTab, setActiveTab] = useState(0);
   const [members, setMembers] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -145,7 +146,7 @@ function AdminPanel({ user, clubId, userRole }) {
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     try {
       const [membersResult, invitationsResult, clubResult] = await Promise.all([
@@ -191,9 +192,9 @@ function AdminPanel({ user, clubId, userRole }) {
       showAlert("error", "Please fill in all required fields");
       return;
     }
-    
+
     // Check if moderator is trying to invite as admin or moderator
-    if (isModerator && inviteForm.role !== 'member') {
+    if (isModerator && inviteForm.role !== "member") {
       showAlert("error", "Moderators can only invite members");
       return;
     }
@@ -212,9 +213,9 @@ function AdminPanel({ user, clubId, userRole }) {
 
   const handleUpdateRole = async () => {
     if (!selectedMember) return;
-    
+
     // Check if moderator is trying to set admin role
-    if (isModerator && selectedMember.role === 'admin') {
+    if (isModerator && selectedMember.role === "admin") {
       showAlert("error", "Moderators cannot assign admin role");
       return;
     }
@@ -235,13 +236,13 @@ function AdminPanel({ user, clubId, userRole }) {
   };
 
   const handleRemoveMember = async (memberId) => {
-    const member = members.find(m => m.id === memberId);
-    
+    const member = members.find((m) => m.id === memberId);
+
     if (!canRemoveMember(member)) {
       showAlert("error", "You don't have permission to remove this member");
       return;
     }
-    
+
     if (!window.confirm("Are you sure you want to remove this member?")) {
       return;
     }
@@ -299,10 +300,10 @@ function AdminPanel({ user, clubId, userRole }) {
     }
 
     try {
-      const { db } = await import('../firebase');
-      const { doc, updateDoc } = await import('firebase/firestore');
-      
-      const clubRef = doc(db, 'clubs', clubId);
+      const { db } = await import("../firebase");
+      const { doc, updateDoc } = await import("firebase/firestore");
+
+      const clubRef = doc(db, "clubs", clubId);
       await updateDoc(clubRef, {
         name: clubForm.name,
         description: clubForm.description,
@@ -357,30 +358,29 @@ function AdminPanel({ user, clubId, userRole }) {
         }}
       >
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, fontSize: { xs: "1.5rem", md: "2.125rem" } }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 600,
+              mb: 1,
+              fontSize: { xs: "1.5rem", md: "2.125rem" },
+            }}
+          >
             Admin Panel
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Manage your club settings, members and invitations
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<PersonAdd />}
-          onClick={() => setInviteDialogOpen(true)}
-          fullWidth={isMobile}
-          sx={{
-            bgcolor: "#6366f1",
-            "&:hover": { bgcolor: "#4F46E5" },
-          }}
-        >
-          Invite Member
-        </Button>
       </Box>
 
       {/* Alert */}
       {alert.show && (
-        <Alert severity={alert.type} sx={{ mb: 3 }} onClose={() => setAlert({ show: false })}>
+        <Alert
+          severity={alert.type}
+          sx={{ mb: 3 }}
+          onClose={() => setAlert({ show: false })}
+        >
           {alert.message}
         </Alert>
       )}
@@ -390,13 +390,32 @@ function AdminPanel({ user, clubId, userRole }) {
         <Grid item xs={6} md={3}>
           <Card>
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, md: 2 }, flexDirection: { xs: "column", sm: "row" } }}>
-                <Group sx={{ fontSize: { xs: 32, md: 40 }, color: "#6366f1" }} />
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: { xs: 1, md: 2 },
+                  flexDirection: { xs: "column", sm: "row" },
+                }}
+              >
+                <Group
+                  sx={{ fontSize: { xs: 32, md: 40 }, color: "#6366f1" }}
+                />
                 <Box sx={{ textAlign: { xs: "center", sm: "left" } }}>
-                  <Typography variant="h4" sx={{ fontWeight: 600, fontSize: { xs: "1.5rem", md: "2.125rem" } }}>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: { xs: "1.5rem", md: "2.125rem" },
+                    }}
+                  >
                     {members.length}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.75rem", md: "0.875rem" } }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: "0.75rem", md: "0.875rem" } }}
+                  >
                     Total Members
                   </Typography>
                 </Box>
@@ -407,13 +426,32 @@ function AdminPanel({ user, clubId, userRole }) {
         <Grid item xs={6} md={3}>
           <Card>
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, md: 2 }, flexDirection: { xs: "column", sm: "row" } }}>
-                <Email sx={{ fontSize: { xs: 32, md: 40 }, color: "#10B981" }} />
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: { xs: 1, md: 2 },
+                  flexDirection: { xs: "column", sm: "row" },
+                }}
+              >
+                <Email
+                  sx={{ fontSize: { xs: 32, md: 40 }, color: "#10B981" }}
+                />
                 <Box sx={{ textAlign: { xs: "center", sm: "left" } }}>
-                  <Typography variant="h4" sx={{ fontWeight: 600, fontSize: { xs: "1.5rem", md: "2.125rem" } }}>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: { xs: "1.5rem", md: "2.125rem" },
+                    }}
+                  >
                     {invitations.length}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.75rem", md: "0.875rem" } }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: "0.75rem", md: "0.875rem" } }}
+                  >
                     Pending Invites
                   </Typography>
                 </Box>
@@ -504,7 +542,10 @@ function AdminPanel({ user, clubId, userRole }) {
                             label="Description"
                             value={clubForm.description}
                             onChange={(e) =>
-                              setClubForm({ ...clubForm, description: e.target.value })
+                              setClubForm({
+                                ...clubForm,
+                                description: e.target.value,
+                              })
                             }
                             multiline
                             rows={4}
@@ -518,7 +559,10 @@ function AdminPanel({ user, clubId, userRole }) {
                             label="Location"
                             value={clubForm.location}
                             onChange={(e) =>
-                              setClubForm({ ...clubForm, location: e.target.value })
+                              setClubForm({
+                                ...clubForm,
+                                location: e.target.value,
+                              })
                             }
                           />
                         </Grid>
@@ -530,7 +574,10 @@ function AdminPanel({ user, clubId, userRole }) {
                             label="Website"
                             value={clubForm.website}
                             onChange={(e) =>
-                              setClubForm({ ...clubForm, website: e.target.value })
+                              setClubForm({
+                                ...clubForm,
+                                website: e.target.value,
+                              })
                             }
                             placeholder="https://"
                           />
@@ -538,7 +585,13 @@ function AdminPanel({ user, clubId, userRole }) {
 
                         {/* Action Buttons */}
                         <Grid item xs={12}>
-                          <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 2,
+                              justifyContent: "flex-end",
+                            }}
+                          >
                             <Button
                               variant="outlined"
                               onClick={() => {
@@ -571,7 +624,14 @@ function AdminPanel({ user, clubId, userRole }) {
                     </Box>
                   ) : (
                     <Box>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mb: 3,
+                        }}
+                      >
                         <Typography variant="h6">Club Information</Typography>
                         <Button
                           variant="contained"
@@ -603,7 +663,11 @@ function AdminPanel({ user, clubId, userRole }) {
 
                         {/* Club Details */}
                         <Grid item xs={12}>
-                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                            gutterBottom
+                          >
                             Club Name
                           </Typography>
                           <Typography variant="body1" sx={{ mb: 2 }}>
@@ -612,7 +676,11 @@ function AdminPanel({ user, clubId, userRole }) {
                         </Grid>
 
                         <Grid item xs={12}>
-                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                            gutterBottom
+                          >
                             Description
                           </Typography>
                           <Typography variant="body1" sx={{ mb: 2 }}>
@@ -621,7 +689,11 @@ function AdminPanel({ user, clubId, userRole }) {
                         </Grid>
 
                         <Grid item xs={12} md={6}>
-                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                            gutterBottom
+                          >
                             Location
                           </Typography>
                           <Typography variant="body1">
@@ -630,12 +702,20 @@ function AdminPanel({ user, clubId, userRole }) {
                         </Grid>
 
                         <Grid item xs={12} md={6}>
-                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                            gutterBottom
+                          >
                             Website
                           </Typography>
                           <Typography variant="body1">
                             {clubData?.website ? (
-                              <a href={clubData.website} target="_blank" rel="noopener noreferrer">
+                              <a
+                                href={clubData.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
                                 {clubData.website}
                               </a>
                             ) : (
@@ -644,7 +724,7 @@ function AdminPanel({ user, clubId, userRole }) {
                           </Typography>
                         </Grid>
 
-                        <Grid item xs={12} md={6}>
+                        {/* <Grid item xs={12} md={6}>
                           <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                             Plan Type
                           </Typography>
@@ -652,15 +732,21 @@ function AdminPanel({ user, clubId, userRole }) {
                             label={clubData?.planType || "Unknown"}
                             color={clubData?.planType === "7day-trial" ? "warning" : "success"}
                           />
-                        </Grid>
+                        </Grid> */}
 
                         <Grid item xs={12} md={6}>
-                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                            gutterBottom
+                          >
                             Created
                           </Typography>
                           <Typography variant="body1">
                             {clubData?.createdAt
-                              ? new Date(clubData.createdAt.seconds * 1000).toLocaleDateString()
+                              ? new Date(
+                                  clubData.createdAt.seconds * 1000
+                                ).toLocaleDateString()
                               : "N/A"}
                           </Typography>
                         </Grid>
@@ -678,7 +764,13 @@ function AdminPanel({ user, clubId, userRole }) {
                     <Box>
                       {members.length === 0 ? (
                         <Box sx={{ textAlign: "center", py: 6 }}>
-                          <Group sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+                          <Group
+                            sx={{
+                              fontSize: 64,
+                              color: "text.secondary",
+                              mb: 2,
+                            }}
+                          />
                           <Typography variant="body1" color="text.secondary">
                             No members yet. Invite your first member!
                           </Typography>
@@ -689,21 +781,35 @@ function AdminPanel({ user, clubId, userRole }) {
                             <Fragment key={member.id}>
                               {index > 0 && <Divider />}
                               <ListItem
-                                sx={{ 
-                                  px: 0, 
+                                sx={{
+                                  px: 0,
                                   py: 2,
                                   display: "flex",
                                   flexDirection: "column",
-                                  alignItems: "stretch"
+                                  alignItems: "stretch",
                                 }}
                               >
                                 <Box sx={{ width: "100%", mb: 1 }}>
-                                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "flex-start",
+                                      mb: 1,
+                                    }}
+                                  >
                                     <Box>
-                                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                      <Typography
+                                        variant="subtitle1"
+                                        sx={{ fontWeight: 600 }}
+                                      >
                                         {member.displayName}
                                       </Typography>
-                                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.875rem" }}>
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{ fontSize: "0.875rem" }}
+                                      >
                                         {member.email}
                                       </Typography>
                                     </Box>
@@ -720,7 +826,9 @@ function AdminPanel({ user, clubId, userRole }) {
                                       </IconButton>
                                       <IconButton
                                         size="small"
-                                        onClick={() => handleRemoveMember(member.id)}
+                                        onClick={() =>
+                                          handleRemoveMember(member.id)
+                                        }
                                         disabled={!canRemoveMember(member)}
                                         color="error"
                                       >
@@ -728,7 +836,13 @@ function AdminPanel({ user, clubId, userRole }) {
                                       </IconButton>
                                     </Box>
                                   </Box>
-                                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      gap: 1,
+                                      flexWrap: "wrap",
+                                    }}
+                                  >
                                     <Chip
                                       label={member.role}
                                       size="small"
@@ -737,11 +851,25 @@ function AdminPanel({ user, clubId, userRole }) {
                                     <Chip
                                       label={member.status || "active"}
                                       size="small"
-                                      color={member.status === "active" ? "success" : "default"}
+                                      color={
+                                        member.status === "active"
+                                          ? "success"
+                                          : "default"
+                                      }
                                     />
-                                    <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center" }}>
-                                      Joined: {member.createdAt
-                                        ? new Date(member.createdAt.seconds * 1000).toLocaleDateString()
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                      }}
+                                    >
+                                      Joined:{" "}
+                                      {member.createdAt
+                                        ? new Date(
+                                            member.createdAt.seconds * 1000
+                                          ).toLocaleDateString()
                                         : "N/A"}
                                     </Typography>
                                   </Box>
@@ -755,84 +883,108 @@ function AdminPanel({ user, clubId, userRole }) {
                   ) : (
                     /* Desktop View - Table */
                     <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Email</TableCell>
-                        <TableCell>Role</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Joined</TableCell>
-                        <TableCell align="right">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {members.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center">
-                            <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                              No members yet. Invite your first member!
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        members.map((member) => (
-                          <TableRow key={member.id} hover>
-                            <TableCell>{member.displayName}</TableCell>
-                            <TableCell>{member.email}</TableCell>
-                            <TableCell>
-                              <Chip
-                                label={member.role}
-                                size="small"
-                                color={getRoleColor(member.role)}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={member.status || "active"}
-                                size="small"
-                                color={member.status === "active" ? "success" : "default"}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {member.createdAt
-                                ? new Date(member.createdAt.seconds * 1000).toLocaleDateString()
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Tooltip title={canEditMember(member) ? "Edit Role" : "No permission"}>
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => {
-                                      setSelectedMember(member);
-                                      setEditDialogOpen(true);
-                                    }}
-                                    disabled={!canEditMember(member)}
-                                  >
-                                    <Edit fontSize="small" />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                              <Tooltip title={canRemoveMember(member) ? "Remove Member" : "No permission"}>
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleRemoveMember(member.id)}
-                                    disabled={!canRemoveMember(member)}
-                                    color="error"
-                                  >
-                                    <Delete fontSize="small" />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                            </TableCell>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Name</TableCell>
+                            <TableCell>Email</TableCell>
+                            <TableCell>Role</TableCell>
+                            <TableCell>Status</TableCell>
+                            <TableCell>Joined</TableCell>
+                            <TableCell align="right">Actions</TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                          {members.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} align="center">
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                  sx={{ py: 4 }}
+                                >
+                                  No members yet. Invite your first member!
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            members.map((member) => (
+                              <TableRow key={member.id} hover>
+                                <TableCell>{member.displayName}</TableCell>
+                                <TableCell>{member.email}</TableCell>
+                                <TableCell>
+                                  <Chip
+                                    label={member.role}
+                                    size="small"
+                                    color={getRoleColor(member.role)}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Chip
+                                    label={member.status || "active"}
+                                    size="small"
+                                    color={
+                                      member.status === "active"
+                                        ? "success"
+                                        : "default"
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  {member.createdAt
+                                    ? new Date(
+                                        member.createdAt.seconds * 1000
+                                      ).toLocaleDateString()
+                                    : "N/A"}
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Tooltip
+                                    title={
+                                      canEditMember(member)
+                                        ? "Edit Role"
+                                        : "No permission"
+                                    }
+                                  >
+                                    <span>
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                          setSelectedMember(member);
+                                          setEditDialogOpen(true);
+                                        }}
+                                        disabled={!canEditMember(member)}
+                                      >
+                                        <Edit fontSize="small" />
+                                      </IconButton>
+                                    </span>
+                                  </Tooltip>
+                                  <Tooltip
+                                    title={
+                                      canRemoveMember(member)
+                                        ? "Remove Member"
+                                        : "No permission"
+                                    }
+                                  >
+                                    <span>
+                                      <IconButton
+                                        size="small"
+                                        onClick={() =>
+                                          handleRemoveMember(member.id)
+                                        }
+                                        disabled={!canRemoveMember(member)}
+                                        color="error"
+                                      >
+                                        <Delete fontSize="small" />
+                                      </IconButton>
+                                    </span>
+                                  </Tooltip>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   )}
                 </>
               )}
@@ -840,12 +992,39 @@ function AdminPanel({ user, clubId, userRole }) {
               {/* Pending Invitations Tab */}
               {activeTab === 2 && (
                 <>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      alignItems: "center",
+                      mb: 3,
+                    }}
+                  >
+                    <Button
+                      variant="contained"
+                      startIcon={<PersonAdd />}
+                      onClick={() => setInviteDialogOpen(true)}
+                      fullWidth={isMobile}
+                      sx={{
+                        bgcolor: "#6366f1",
+                        "&:hover": { bgcolor: "#4F46E5" },
+                      }}
+                    >
+                      Invite Member
+                    </Button>
+                  </Box>
                   {isMobile ? (
                     /* Mobile View - Card List */
                     <Box>
                       {invitations.length === 0 ? (
                         <Box sx={{ textAlign: "center", py: 6 }}>
-                          <Email sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+                          <Email
+                            sx={{
+                              fontSize: 64,
+                              color: "text.secondary",
+                              mb: 2,
+                            }}
+                          />
                           <Typography variant="body1" color="text.secondary">
                             No pending invitations
                           </Typography>
@@ -856,59 +1035,90 @@ function AdminPanel({ user, clubId, userRole }) {
                             <Fragment key={invitation.id}>
                               {index > 0 && <Divider />}
                               <ListItem
-                                sx={{ 
-                                  px: 0, 
+                                sx={{
+                                  px: 0,
                                   py: 2,
                                   display: "flex",
                                   flexDirection: "column",
-                                  alignItems: "stretch"
+                                  alignItems: "stretch",
                                 }}
                               >
                                 <Box sx={{ width: "100%", mb: 1 }}>
-                                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "flex-start",
+                                      mb: 1,
+                                    }}
+                                  >
                                     <Box>
-                                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                      <Typography
+                                        variant="subtitle1"
+                                        sx={{ fontWeight: 600 }}
+                                      >
                                         {invitation.displayName}
                                       </Typography>
-                                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.875rem" }}>
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{ fontSize: "0.875rem" }}
+                                      >
                                         {invitation.email}
                                       </Typography>
                                     </Box>
                                     <Box sx={{ display: "flex", gap: 0.5 }}>
-                                      <Tooltip title="Resend Invitation Email">
-                                        <IconButton
-                                          size="small"
-                                          onClick={() => handleResendInvitation(invitation)}
-                                          color="primary"
-                                        >
-                                          <Send fontSize="small" />
-                                        </IconButton>
-                                      </Tooltip>
-                                      <Tooltip title="Cancel Invitation">
-                                        <IconButton
-                                          size="small"
-                                          onClick={() => handleCancelInvitation(invitation.id)}
-                                          color="error"
-                                        >
-                                          <Cancel fontSize="small" />
-                                        </IconButton>
-                                      </Tooltip>
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => handleResendInvitation(invitation)}
+                                        title="Resend Invitation Email"
+                                      >
+                                        <Send fontSize="small" />
+                                      </IconButton>
+                                      <IconButton
+                                        size="small"
+                                        onClick={() =>
+                                          handleCancelInvitation(invitation.id)
+                                        }
+                                        color="error"
+                                      >
+                                        <Cancel fontSize="small" />
+                                      </IconButton>
                                     </Box>
                                   </Box>
-                                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      gap: 1,
+                                      flexWrap: "wrap",
+                                      alignItems: "center",
+                                    }}
+                                  >
                                     <Chip
                                       label={invitation.role}
                                       size="small"
                                       color={getRoleColor(invitation.role)}
                                     />
-                                    <Typography variant="caption" color="text.secondary">
-                                      Invited: {invitation.createdAt
-                                        ? new Date(invitation.createdAt.seconds * 1000).toLocaleDateString()
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                    >
+                                      Invited:{" "}
+                                      {invitation.createdAt
+                                        ? new Date(
+                                            invitation.createdAt.seconds * 1000
+                                          ).toLocaleDateString()
                                         : "N/A"}
                                     </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      • Expires: {invitation.expiresAt
-                                        ? new Date(invitation.expiresAt.seconds * 1000).toLocaleDateString()
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                    >
+                                      • Expires:{" "}
+                                      {invitation.expiresAt
+                                        ? new Date(
+                                            invitation.expiresAt.seconds * 1000
+                                          ).toLocaleDateString()
                                         : "N/A"}
                                     </Typography>
                                   </Box>
@@ -922,74 +1132,83 @@ function AdminPanel({ user, clubId, userRole }) {
                   ) : (
                     /* Desktop View - Table */
                     <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Email</TableCell>
-                        <TableCell>Role</TableCell>
-                        <TableCell>Invited</TableCell>
-                        <TableCell>Expires</TableCell>
-                        <TableCell align="right">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {invitations.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center">
-                            <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                              No pending invitations
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        invitations.map((invitation) => (
-                          <TableRow key={invitation.id} hover>
-                            <TableCell>{invitation.displayName}</TableCell>
-                            <TableCell>{invitation.email}</TableCell>
-                            <TableCell>
-                              <Chip
-                                label={invitation.role}
-                                size="small"
-                                color={getRoleColor(invitation.role)}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {invitation.createdAt
-                                ? new Date(invitation.createdAt.seconds * 1000).toLocaleDateString()
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {invitation.expiresAt
-                                ? new Date(invitation.expiresAt.seconds * 1000).toLocaleDateString()
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Tooltip title="Resend Invitation Email">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleResendInvitation(invitation)}
-                                  color="primary"
-                                >
-                                  <Send fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Cancel Invitation">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleCancelInvitation(invitation.id)}
-                                  color="error"
-                                >
-                                  <Cancel fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </TableCell>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Name</TableCell>
+                            <TableCell>Email</TableCell>
+                            <TableCell>Role</TableCell>
+                            <TableCell>Invited</TableCell>
+                            <TableCell>Expires</TableCell>
+                            <TableCell align="right">Actions</TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                          {invitations.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} align="center">
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                  sx={{ py: 4 }}
+                                >
+                                  No pending invitations
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            invitations.map((invitation) => (
+                              <TableRow key={invitation.id} hover>
+                                <TableCell>{invitation.displayName}</TableCell>
+                                <TableCell>{invitation.email}</TableCell>
+                                <TableCell>
+                                  <Chip
+                                    label={invitation.role}
+                                    size="small"
+                                    color={getRoleColor(invitation.role)}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  {invitation.createdAt
+                                    ? new Date(
+                                        invitation.createdAt.seconds * 1000
+                                      ).toLocaleDateString()
+                                    : "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {invitation.expiresAt
+                                    ? new Date(
+                                        invitation.expiresAt.seconds * 1000
+                                      ).toLocaleDateString()
+                                    : "N/A"}
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Tooltip title="Resend Invitation Email">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => handleResendInvitation(invitation)}
+                                    >
+                                      <Send fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Cancel Invitation">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() =>
+                                        handleCancelInvitation(invitation.id)
+                                      }
+                                      color="error"
+                                    >
+                                      <Cancel fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   )}
                 </>
               )}
@@ -1104,7 +1323,10 @@ function AdminPanel({ user, clubId, userRole }) {
                   value={selectedMember.role}
                   label="Role"
                   onChange={(e) =>
-                    setSelectedMember({ ...selectedMember, role: e.target.value })
+                    setSelectedMember({
+                      ...selectedMember,
+                      role: e.target.value,
+                    })
                   }
                 >
                   {getEditableRoles(selectedMember).map((role) => (

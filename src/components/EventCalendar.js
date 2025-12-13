@@ -28,11 +28,11 @@ import {
   Schedule,
   People,
   Close,
+  Repeat,
 } from "@mui/icons-material";
 import {
   responsiveSpacing,
   responsiveSizing,
-  componentStyles,
 } from "../utils/responsive";
 
 function EventCalendar({ onEventClick, user, onAddEvent }) {
@@ -225,7 +225,9 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               sx={{
                 width: { xs: 5, sm: 6 },
                 height: { xs: 5, sm: 6 },
-                bgcolor: today ? "white" : "#0066ff",
+                bgcolor: dayEvents.some(e => e.isRecurring) 
+                  ? (today ? "white" : "#F59E0B") 
+                  : (today ? "white" : "#0066ff"),
                 borderRadius: "50%",
                 position: "absolute",
                 bottom: 4,
@@ -528,12 +530,27 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                       borderRadius: 1,
                       cursor: "pointer",
                       transition: "all 0.2s",
+                      position: "relative",
                       "&:hover": {
                         bgcolor: "white",
                         transform: "translateX(4px)",
                       },
                     }}
                   >
+                    {event.isRecurring && (
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                          fontSize: "1rem",
+                          opacity: 0.6,
+                          color: "#6b7280",
+                        }}
+                      >
+                        <Repeat />
+                      </Box>
+                    )}
                     <Typography
                       variant="caption"
                       sx={{
@@ -547,6 +564,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                         minute: "2-digit",
                       })}
                     </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: event.isRecurring ? 3 : 0 }}>
                     <Typography
                       variant="body2"
                       fontWeight={600}
@@ -564,6 +582,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                     >
                       →
                     </Typography>
+                    </Box>
                   </Box>
                 ))}
               </Box>
@@ -939,10 +958,25 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                   sx={{
                     mb: 2,
                     cursor: "pointer",
+                    position: "relative",
                     "&:hover": { bgcolor: "action.hover" },
                   }}
                 >
                   <CardContent>
+                    {event.isRecurring && (
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: 12,
+                          right: 12,
+                          fontSize: "1.25rem",
+                          opacity: 0.6,
+                          color: "#6b7280",
+                        }}
+                      >
+                        <Repeat />
+                      </Box>
+                    )}
                     <Typography variant="caption" color="text.secondary">
                       {event.date.toLocaleTimeString("en-US", {
                         hour: "2-digit",
