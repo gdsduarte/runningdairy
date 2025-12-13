@@ -2,16 +2,17 @@
 /* eslint-disable max-len */
 /**
  * Cloud Functions for Running Diary App
- * Handles email sending via Resend API with security controls
+ * Handles email sending via Gmail SMTP with security controls
  */
 
 // Load environment variables from .env file
 require("dotenv").config();
 
+const functions = require("firebase-functions");
 const {setGlobalOptions} = require("firebase-functions");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
-const {Resend} = require("resend");
+const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
 
 // Initialize Firebase Admin
@@ -19,19 +20,47 @@ admin.initializeApp();
 
 setGlobalOptions({maxInstances: 10});
 
-// Lazy initialize Resend to avoid loading without API key
-let resend = null;
-function getResend() {
-  if (!resend) {
-    if (!process.env.RESEND_API_KEY) {
+// Lazy initialize email transporter
+let transporter = null;
+function getTransporter() {
+  if (!transporter) {
+    // Try environment variables first (local .env), then Firebase config (production)
+    const gmailUser =
+      process.env.GMAIL_USER ||
+      (functions.config().gmail && functions.config().gmail.user);
+    const gmailPassword =
+      process.env.GMAIL_APP_PASSWORD ||
+      (functions.config().gmail && functions.config().gmail.password);
+
+    if (!gmailUser || !gmailPassword) {
       throw new HttpsError(
           "failed-precondition",
-          "Resend API key not configured. Set RESEND_API_KEY environment variable.",
+          "Gmail credentials not configured. Set GMAIL_USER and GMAIL_APP_PASSWORD environment variables.",
       );
     }
-    resend = new Resend(process.env.RESEND_API_KEY);
+
+    // Check if running in emulator (development)
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+
+    const transportConfig = {
+      service: "gmail",
+      auth: {
+        user: gmailUser,
+        pass: gmailPassword,
+      },
+    };
+
+    // In emulator, disable certificate validation to avoid self-signed cert errors
+    if (isEmulator) {
+      transportConfig.tls = {
+        rejectUnauthorized: false,
+      };
+      logger.info("Running in emulator mode - TLS certificate validation disabled");
+    }
+
+    transporter = nodemailer.createTransport(transportConfig);
   }
-  return resend;
+  return transporter;
 }
 
 // Rate limiting cache (in production, use Redis or Firestore)
@@ -106,19 +135,30 @@ function isValidEmail(email) {
 /**
  * Verify user has admin/moderator role in the club
  * @param {string} uid - User ID
- * @param {string} invitationToken - Full invitation token
+ * @param {string} invitationToken - Invitation token
  * @return {Promise<boolean>} - Whether user has permission
  */
 async function verifyUserPermission(uid, invitationToken) {
   try {
-    // Extract club ID from invitation token format: club_timestamp_randomId_inviteTimestamp
-    const clubIdMatch = invitationToken.match(/^(club_\d+_[a-z0-9]+)_/);
-    if (!clubIdMatch) {
-      logger.warn("Invalid invitation token format", {invitationToken});
+    // Get the invitation document to find the clubId
+    const invitationDoc = await admin
+        .firestore()
+        .collection("invitations")
+        .doc(invitationToken)
+        .get();
+
+    if (!invitationDoc.exists) {
+      logger.warn("Invitation not found", {invitationToken});
       return false;
     }
 
-    const actualClubId = clubIdMatch[1];
+    const invitationData = invitationDoc.data();
+    const actualClubId = invitationData.clubId;
+
+    if (!actualClubId) {
+      logger.warn("No clubId in invitation", {invitationToken});
+      return false;
+    }
 
     // Get user document
     const userDoc = await admin.firestore().collection("users").doc(uid).get();
@@ -134,7 +174,11 @@ async function verifyUserPermission(uid, invitationToken) {
 
     // User must be in the same club and have admin or moderator role
     if (userClubId !== actualClubId) {
-      logger.warn("User not authorized for this club", {uid, actualClubId});
+      logger.warn("User not authorized for this club", {
+        uid,
+        userClubId,
+        actualClubId,
+      });
       return false;
     }
 
@@ -200,9 +244,11 @@ exports.sendInvitationEmail = onCall(
       }
 
       // 7. CONSTRUCT INVITATION LINK (use sanitized token)
-      const invitationLink = `${
-        process.env.APP_URL || "http://localhost:3000"
-      }/setup-account?token=${sanitizedToken}`;
+      const appUrl =
+      process.env.APP_URL ||
+      (functions.config().app && functions.config().app.url) ||
+      "http://localhost:3000";
+      const invitationLink = `${appUrl}/setup-account?token=${sanitizedToken}`;
 
       // 8. BUILD EMAIL HTML (use sanitized values)
       const emailHtml = `
@@ -284,43 +330,25 @@ exports.sendInvitationEmail = onCall(
     </html>
   `;
 
-      // 9. SEND EMAIL VIA RESEND
+      // 9. SEND EMAIL VIA GMAIL
       try {
-        const resendClient = getResend();
+        const emailTransporter = getTransporter();
 
-        const result = await resendClient.emails.send({
-          from: "Running Club <onboarding@resend.dev>", // Update this with your verified domain
+        const gmailUser =
+        process.env.GMAIL_USER ||
+        (functions.config().gmail && functions.config().gmail.user);
+
+        const mailOptions = {
+          from: `"${sanitizedClubName}" <${gmailUser}>`,
           to: sanitizedEmail,
           subject: `You're invited to join ${sanitizedClubName}!`,
           html: emailHtml,
-        });
+        };
 
-        // Check for Resend API errors
-        if (result.error) {
-          logger.error("Resend API error", {
-            error: result.error.message,
-            email: sanitizedEmail,
-          });
+        const result = await emailTransporter.sendMail(mailOptions);
 
-          // Handle common Resend errors
-          if (
-            result.error.message &&
-          result.error.message.includes("verify a domain")
-          ) {
-            throw new HttpsError(
-                "failed-precondition",
-                "Email domain not verified. To send emails to any recipient, please verify a domain in Resend (resend.com/domains). For testing, you can only send to your registered email address.",
-            );
-          }
-
-          throw new HttpsError(
-              "internal",
-              `Email service error: ${result.error.message}`,
-          );
-        }
-
-        if (!result.data?.id) {
-          logger.error("No email ID returned", {email: sanitizedEmail});
+        if (!result.messageId) {
+          logger.error("No message ID returned", {email: sanitizedEmail});
           throw new HttpsError(
               "internal",
               "Email service did not return confirmation ID",
@@ -328,7 +356,7 @@ exports.sendInvitationEmail = onCall(
         }
 
         logger.info("Invitation email sent", {
-          emailId: result.data.id,
+          messageId: result.messageId,
           to: sanitizedEmail,
           sentBy: uid,
         });
@@ -336,7 +364,7 @@ exports.sendInvitationEmail = onCall(
         return {
           success: true,
           message: `Invitation email sent to ${sanitizedEmail}`,
-          emailId: result.data.id,
+          emailId: result.messageId,
         };
       } catch (error) {
         logger.error("Error sending email", {

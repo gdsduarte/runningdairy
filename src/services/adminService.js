@@ -15,6 +15,7 @@ import { sendInvitationEmail } from './emailService';
 // Invite a new member to the club
 export const inviteMember = async (memberData, clubId, adminUid) => {
   try {
+    console.log('inviteMember called with:', { memberData, clubId, adminUid });
     const { email, displayName, role = 'member' } = memberData;
 
     // Check if user already exists
@@ -23,22 +24,56 @@ export const inviteMember = async (memberData, clubId, adminUid) => {
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
-      return { success: false, error: 'User with this email already exists' };
+      // User exists - check if they're inactive or from another club
+      const existingUser = querySnapshot.docs[0];
+      const userData = existingUser.data();
+      
+      console.log('Existing user found:', userData);
+
+      // If user is inactive or has no club, reactivate them
+      if (userData.status === 'inactive' || !userData.clubId) {
+        console.log('Reactivating inactive user');
+        const userRef = doc(db, 'users', existingUser.id);
+        await updateDoc(userRef, {
+          clubId,
+          role,
+          status: 'active',
+          displayName: displayName || userData.displayName,
+          updatedAt: serverTimestamp()
+        });
+        
+        return { 
+          success: true, 
+          message: `${email} has been re-invited and reactivated in the club.` 
+        };
+      }
+      
+      // User is active in the same club
+      if (userData.clubId === clubId) {
+        console.log('User already in this club');
+        return { success: false, error: 'User is already a member of this club' };
+      }
+      
+      // User is active in a different club
+      console.log('User in different club');
+      return { success: false, error: 'User is already a member of another club' };
     }
 
     // Get club details for email
     const clubRef = doc(db, 'clubs', clubId);
     const clubSnap = await getDoc(clubRef);
     const clubName = clubSnap.exists() ? clubSnap.data().name : 'Running Club';
+    console.log('Club name:', clubName);
 
-    // Create secure invitation token with crypto random component
-    const randomBytes = new Uint8Array(16);
+    // Create completely random invitation token (no club info exposed)
+    const randomBytes = new Uint8Array(32); // Increased to 32 bytes for more randomness
     crypto.getRandomValues(randomBytes);
-    const randomString = Array.from(randomBytes)
-      .map(b => b.toString(36))
+    const invitationId = Array.from(randomBytes)
+      .map(b => b.toString(36).padStart(2, '0'))
       .join('')
-      .slice(0, 20);
-    const invitationId = `${clubId}_${Date.now()}_${randomString}`;
+      .slice(0, 40); // 40 character random token
+    
+    console.log('Generated invitation ID:', invitationId);
     const invitationRef = doc(db, 'invitations', invitationId);
     
     const invitationData = {
@@ -52,10 +87,14 @@ export const inviteMember = async (memberData, clubId, adminUid) => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
     };
 
+    console.log('Creating invitation document...');
     await setDoc(invitationRef, invitationData);
+    console.log('Invitation document created');
 
     // Send invitation email
+    console.log('Sending invitation email...');
     const emailResult = await sendInvitationEmail(email, displayName, invitationId, clubName);
+    console.log('Email result:', emailResult);
 
     if (!emailResult.success) {
       console.warn('Email sending failed:', emailResult.error);
@@ -124,8 +163,16 @@ export const getPendingInvitations = async (clubId) => {
 };
 
 // Update member role
-export const updateMemberRole = async (userId, newRole) => {
+export const updateMemberRole = async (userId, newRole, currentUserRole, targetUserRole) => {
   try {
+    // Permission check: moderators can only update members
+    if (currentUserRole === 'moderator' && targetUserRole !== 'member') {
+      return { 
+        success: false, 
+        error: 'Moderators can only update members, not admins or other moderators' 
+      };
+    }
+
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
       role: newRole,
@@ -140,8 +187,16 @@ export const updateMemberRole = async (userId, newRole) => {
 };
 
 // Remove member from club
-export const removeMember = async (userId) => {
+export const removeMember = async (userId, currentUserRole, targetUserRole) => {
   try {
+    // Permission check: moderators can only remove members
+    if (currentUserRole === 'moderator' && targetUserRole !== 'member') {
+      return { 
+        success: false, 
+        error: 'Moderators can only remove members, not admins or other moderators' 
+      };
+    }
+
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
       clubId: null,

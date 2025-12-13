@@ -6,6 +6,7 @@ import { Box, CircularProgress } from "@mui/material";
 import { useSelector } from "react-redux";
 import { useAuthListener } from "./store/hooks/useAuthListener";
 import { useEventsListener } from "./store/hooks/useEventsListener";
+import { useUserProfileListener } from "./store/hooks/useUserProfileListener";
 import { signOut, getUserRole } from "./services";
 import theme from "./theme/theme";
 import MainLayout from "./components/MainLayout";
@@ -28,6 +29,10 @@ function App() {
   const user = useSelector((state) => state.auth.user);
   const loading = useSelector((state) => state.auth.loading);
   const userProfile = useSelector((state) => state.user.profile);
+  const userProfileLoading = useSelector((state) => state.user.loading);
+
+  // Initialize user profile listener
+  useUserProfileListener(user?.uid);
 
   const [userRole, setUserRole] = useState(null);
   const [roleLoading, setRoleLoading] = useState(true);
@@ -84,7 +89,7 @@ function App() {
     }
   };
 
-  if (loading || roleLoading) {
+  if (loading || roleLoading || (user && userProfileLoading)) {
     return (
       <Box
         sx={{
