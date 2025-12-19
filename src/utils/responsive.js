@@ -164,7 +164,7 @@ export const componentStyles = {
     borderColor: 'divider',
     display: { xs: 'flex', md: 'none' },
     justifyContent: 'space-around',
-    py: 1,
+    //py: 1,
     zIndex: 1100,
   },
 };

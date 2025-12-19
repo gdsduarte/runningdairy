@@ -40,17 +40,15 @@ const getMenuItems = (userRole, isMobile = false) => {
 
   const adminItems =
     userRole?.role === "admin" || userRole?.role === "moderator"
-      ? [{ path: "/admin/members", label: "Members", icon: <Group /> }]
+      ? [{ path: "/admin/members", label: "Club", icon: <Group /> }]
       : [];
 
   // Don't include logout in mobile bottom nav (it's in top bar)
-  const logoutItem = isMobile ? [] : [{ path: "/logout", label: "Logout", icon: <Logout /> }];
+  const logoutItem = isMobile
+    ? []
+    : [{ path: "/logout", label: "Logout", icon: <Logout /> }];
 
-  return [
-    ...baseItems,
-    ...adminItems,
-    ...logoutItem,
-  ];
+  return [...baseItems, ...adminItems, ...logoutItem];
 };
 
 function MainLayout({ children, onLogout, userRole }) {
@@ -100,7 +98,7 @@ function MainLayout({ children, onLogout, userRole }) {
         </AppBar>
 
         {/* Main Content */}
-        <Box sx={{ flex: 1, overflow: "auto", pt: 7, pb: 7 }}>{children}</Box>
+        <Box sx={{ flex: 1, overflow: "hidden", pt: 7, pb: 7 }}>{children}</Box>
 
         {/* Bottom Navigation */}
         <Box
@@ -123,7 +121,7 @@ function MainLayout({ children, onLogout, userRole }) {
               }}
             >
               {item.icon}
-              <Box component="span" sx={{ fontSize: "0.75rem" }}>
+              <Box component="span" sx={{ fontSize: "0.65rem" }}>
                 {item.label}
               </Box>
             </IconButton>
@@ -131,7 +129,10 @@ function MainLayout({ children, onLogout, userRole }) {
         </Box>
 
         {/* Logout Confirmation Dialog */}
-        <Dialog open={showLogoutDialog} onClose={() => setShowLogoutDialog(false)}>
+        <Dialog
+          open={showLogoutDialog}
+          onClose={() => setShowLogoutDialog(false)}
+        >
           <DialogTitle>Confirm Logout</DialogTitle>
           <DialogContent>
             <Typography>Are you sure you want to logout?</Typography>
@@ -252,7 +253,10 @@ function MainLayout({ children, onLogout, userRole }) {
       </Box>
 
       {/* Logout Confirmation Dialog */}
-      <Dialog open={showLogoutDialog} onClose={() => setShowLogoutDialog(false)}>
+      <Dialog
+        open={showLogoutDialog}
+        onClose={() => setShowLogoutDialog(false)}
+      >
         <DialogTitle>Confirm Logout</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to logout?</Typography>

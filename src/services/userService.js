@@ -6,6 +6,7 @@ import {
   onSnapshot, 
   collection, 
   query, 
+  where,
   orderBy 
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -63,9 +64,10 @@ export const subscribeToUserProfile = (userId, callback) => {
 };
 
 // Subscribe to user's attended events with real-time updates
-export const subscribeToUserEvents = (userId, callback) => {
+export const subscribeToUserEvents = (userId, userClubId, callback) => {
   const eventsQuery = query(
     collection(db, 'events'),
+    where('clubId', '==', userClubId),
     orderBy('date', 'desc')
   );
   

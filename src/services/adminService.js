@@ -10,10 +10,16 @@ import {
   serverTimestamp,
   updateDoc,
 } from 'firebase/firestore';
+import { 
+  sendPasswordResetEmail,
+  createUserWithEmailAndPassword,
+  sendSignInLinkToEmail
+} from 'firebase/auth';
 
 // Invite a new member to the club
 export const inviteMember = async (memberData, clubId, adminUid) => {
   try {
+    console.log('inviteMember called with:', { memberData, clubId, adminUid });
     const { email, displayName, role = 'member' } = memberData;
 
     // Check if user already exists
@@ -22,11 +28,56 @@ export const inviteMember = async (memberData, clubId, adminUid) => {
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
-      return { success: false, error: 'User with this email already exists' };
+      // User exists - check if they're inactive or from another club
+      const existingUser = querySnapshot.docs[0];
+      const userData = existingUser.data();
+      
+      console.log('Existing user found:', userData);
+
+      // If user is inactive or has no club, reactivate them
+      if (userData.status === 'inactive' || !userData.clubId) {
+        console.log('Reactivating inactive user');
+        const userRef = doc(db, 'users', existingUser.id);
+        await updateDoc(userRef, {
+          clubId,
+          role,
+          status: 'active',
+          displayName: displayName || userData.displayName,
+          updatedAt: serverTimestamp()
+        });
+        
+        return { 
+          success: true, 
+          message: `${email} has been re-invited and reactivated in the club.` 
+        };
+      }
+      
+      // User is active in the same club
+      if (userData.clubId === clubId) {
+        console.log('User already in this club');
+        return { success: false, error: 'User is already a member of this club' };
+      }
+      
+      // User is active in a different club
+      console.log('User in different club');
+      return { success: false, error: 'User is already a member of another club' };
     }
 
-    // Create invitation document
-    const invitationId = `${clubId}_${Date.now()}`;
+    // Get club details for email
+    const clubRef = doc(db, 'clubs', clubId);
+    const clubSnap = await getDoc(clubRef);
+    const clubName = clubSnap.exists() ? clubSnap.data().name : 'Running Club';
+    console.log('Club name:', clubName);
+
+    // Create completely random invitation token (no club info exposed)
+    const randomBytes = new Uint8Array(32); // Increased to 32 bytes for more randomness
+    crypto.getRandomValues(randomBytes);
+    const invitationId = Array.from(randomBytes)
+      .map(b => b.toString(36).padStart(2, '0'))
+      .join('')
+      .slice(0, 40); // 40 character random token
+    
+    console.log('Generated invitation ID:', invitationId);
     const invitationRef = doc(db, 'invitations', invitationId);
     
     const invitationData = {
@@ -40,20 +91,24 @@ export const inviteMember = async (memberData, clubId, adminUid) => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
     };
 
+    console.log('Creating invitation document...');
     await setDoc(invitationRef, invitationData);
+    console.log('Invitation document created');
 
-    // Generate invitation link
-    const invitationLink = `${window.location.origin}/setup-account?token=${invitationId}`;
+    // Send invitation email
+    console.log('Sending invitation email...');
+    const emailResult = await sendInvitationEmail(email, displayName, invitationId, clubName);
+    console.log('Email result:', emailResult);
 
-    // In a real implementation, you would send this via email service
-    // For now, we'll return the link
-    console.log('Invitation link:', invitationLink);
+    if (!emailResult.success) {
+      console.warn('Email sending failed:', emailResult.error);
+      // Don't fail the invitation if email fails
+    }
 
     return { 
       success: true, 
       invitationId,
-      invitationLink,
-      message: 'Invitation created successfully. Send this link to the member.' 
+      message: `Invitation sent to ${email}. They will receive an email with instructions to set up their account.` 
     };
   } catch (error) {
     console.error('Error inviting member:', error);
@@ -112,8 +167,16 @@ export const getPendingInvitations = async (clubId) => {
 };
 
 // Update member role
-export const updateMemberRole = async (userId, newRole) => {
+export const updateMemberRole = async (userId, newRole, currentUserRole, targetUserRole) => {
   try {
+    // Permission check: moderators can only update members
+    if (currentUserRole === 'moderator' && targetUserRole !== 'member') {
+      return { 
+        success: false, 
+        error: 'Moderators can only update members, not admins or other moderators' 
+      };
+    }
+
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
       role: newRole,
@@ -128,8 +191,16 @@ export const updateMemberRole = async (userId, newRole) => {
 };
 
 // Remove member from club
-export const removeMember = async (userId) => {
+export const removeMember = async (userId, currentUserRole, targetUserRole) => {
   try {
+    // Permission check: moderators can only remove members
+    if (currentUserRole === 'moderator' && targetUserRole !== 'member') {
+      return { 
+        success: false, 
+        error: 'Moderators can only remove members, not admins or other moderators' 
+      };
+    }
+
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
       clubId: null,
@@ -194,7 +265,7 @@ export const verifyInvitation = async (invitationId) => {
 };
 
 // Complete member setup (called after password is set)
-export const completeMemberSetup = async (invitationId, userId, password) => {
+export const completeMemberSetup = async (invitationId, userId, userEmail, password) => {
   try {
     // Get invitation details
     const invitationRef = doc(db, 'invitations', invitationId);
@@ -205,6 +276,14 @@ export const completeMemberSetup = async (invitationId, userId, password) => {
     }
 
     const invitationData = invitationDoc.data();
+
+    // SECURITY: Verify email matches the invitation
+    if (invitationData.email.toLowerCase() !== userEmail.toLowerCase()) {
+      return { 
+        success: false, 
+        error: 'This invitation was sent to a different email address. Please use the correct email or request a new invitation.' 
+      };
+    }
 
     // Create user document
     const userRef = doc(db, 'users', userId);

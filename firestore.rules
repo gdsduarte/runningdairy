@@ -8,32 +8,73 @@ service cloud.firestore {
       // Anyone can read user profiles (for displaying names, etc.)
       allow read: if true;
       
-      // Users can only write their own profile
+      // Users can write their own profile
       allow write: if request.auth != null && request.auth.uid == userId;
       
-      // Prevent users from changing their own role (only admins can do this manually in console)
+      // Users can update their own profile (but not their role or clubId)
       allow update: if request.auth != null 
                     && request.auth.uid == userId
-                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'clubId']));
+      
+      // Admins can update any user in their club OR reactivate inactive users (clubId is null)
+      allow update: if request.auth != null 
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+                    && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubId == resource.data.clubId
+                        || resource.data.clubId == null);
+      
+      // Moderators can update members (not admins or other moderators) in their club
+      allow update: if request.auth != null 
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'moderator'
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubId == resource.data.clubId
+                    && resource.data.role == 'member';
     }
     
     // Events collection
     match /events/{eventId} {
-      // Anyone can read events
+      // Users can only read events from their own club
+      allow read: if request.auth != null 
+                  && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubId == resource.data.clubId;
+      
+      // Authenticated users can create events (clubId will be set from their profile)
+      allow create: if request.auth != null
+                    && request.resource.data.clubId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubId;
+      
+      // Users can update events if they are the creator or an admin, and event belongs to their club
+      allow update: if request.auth != null 
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubId == resource.data.clubId
+                    && (resource.data.createdBy == request.auth.uid 
+                        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      
+      // Users can delete events if they are the creator or an admin, and event belongs to their club
+      allow delete: if request.auth != null 
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubId == resource.data.clubId
+                    && (resource.data.createdBy == request.auth.uid 
+                        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+    
+    // Invitations collection
+    match /invitations/{invitationId} {
+      // Allow unauthenticated read for invitation verification (account setup)
+      // Users need to verify invitations before they have an account
       allow read: if true;
       
-      // Authenticated users can create events
-      allow create: if request.auth != null;
+      // Only authenticated admins/moderators can create invitations
+      allow create: if request.auth != null 
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'moderator'];
       
-      // Users can update events if they are the creator or an admin
-      allow update: if request.auth != null 
-                    && (resource.data.createdBy == request.auth.uid 
-                        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      // Only authenticated admins/moderators can update/delete invitations
+      allow update, delete: if request.auth != null 
+                          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'moderator'];
+    }
+    
+    // Clubs collection
+    match /clubs/{clubId} {
+      // Anyone can read club information
+      allow read: if true;
       
-      // Users can delete events if they are the creator or an admin
-      allow delete: if request.auth != null 
-                    && (resource.data.createdBy == request.auth.uid 
-                        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      // Only authenticated admins can create/update clubs
+      allow create, update: if request.auth != null 
+                            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
     // Default deny all other access

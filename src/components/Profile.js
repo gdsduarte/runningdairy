@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { useUserProfileListener } from "../store/hooks/useUserProfileListener";
+import { useSelector } from "react-redux";
 import {
   updateUserProfile,
   uploadProfileImage,
@@ -44,13 +44,11 @@ import {
 function Profile({ user }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  // Get user data from Redux store
-  const {
-    profile: reduxProfile,
-    pastEvents,
-    badges,
-    loading,
-  } = useUserProfileListener(user?.uid);
+  
+  // Get user data from Redux store (already loaded by App.js)
+  const reduxProfile = useSelector((state) => state.user.profile);
+  const pastEvents = useSelector((state) => state.user.pastEvents);
+  const badges = useSelector((state) => state.user.badges);
 
   const [profile, setProfile] = useState({
     displayName: "",
@@ -76,7 +74,7 @@ function Profile({ user }) {
         bio: "",
         location: "",
         favoriteDistance: "",
-        clubName: "",
+        //clubName: "",
       });
     }
   }, [reduxProfile, user]);
@@ -169,198 +167,212 @@ function Profile({ user }) {
     });
   };
 
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          py: 8,
-          gap: 2,
-        }}
-      >
-        <CircularProgress size={60} />
-        <Typography>Loading profile...</Typography>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ pb: responsiveSpacing.sectionGap }}>
-      {/* Profile Header with Cover */}
-      <Box
-        sx={{
-          position: "relative",
-          height: isMobile ? 150 : 250,
-          backgroundImage: profile.coverUrl
-            ? `url(${profile.coverUrl})`
-            : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, #764ba2 100%)`,
-          backgroundSize: "cover",
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center",
-          mb: isMobile ? 2 : 2,
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)",
-            pointerEvents: "none",
-          }
-        }}
-      >
-        {isEditing && (
-          <IconButton
-            onClick={handleCoverSelect}
-            sx={{
-              position: "absolute",
-              top: 16,
-              right: 16,
-              bgcolor: "background.paper",
-              "&:hover": { bgcolor: "action.hover" },
-              zIndex: 1,
-            }}
-          >
-            {uploadingCover ? <HourglassEmpty /> : <CameraAlt />}
-          </IconButton>
-        )}
-
-        {/* Avatar and Name */}
+    <Box
+      sx={{
+        display: "flex",
+        width: isMobile ? "100%" : "80%",
+        height: isMobile ? "calc(100vh - 110px)" : "calc(100vh - 64px)",
+        bgcolor: "background.paper",
+        flexDirection: "column",
+        overflow: "hidden",
+        boxShadow: isMobile ? "none" : 3,
+        mx: "auto",
+        my: isMobile ? 0 : 4,
+      }}
+    >
+      {/* Sticky Header Section */}
+      <Box sx={{ flexShrink: 0 }}>
+        {/* Profile Header with Cover */}
         <Box
           sx={{
-            position: "absolute",
-            bottom: -25,
-            left: isMobile ? 2 : 32,
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 1,
-            width: isMobile ? "calc(100% - 16px)" : "auto",
-            zIndex: 1,
-          }}
-        >
-          <Box sx={{ position: "relative" }}>
-            <Avatar
-              src={profile.avatarUrl}
-              sx={{
-                width: isMobile ? 100 : 120,
-                height: isMobile ? 100 : 120,
-                border: "4px solid",
-                borderColor: "background.paper",
-                fontSize: isMobile ? "2.5rem" : "3rem",
-                bgcolor: theme.palette.primary.main,
-                cursor: isEditing ? "pointer" : "default",
-              }}
-              onClick={isEditing ? handleAvatarSelect : undefined}
-            >
-              {uploadingAvatar ? (
-                <CircularProgress size={40} color="inherit" />
-              ) : profile.displayName ? (
-                profile.displayName.charAt(0).toUpperCase()
-              ) : (
-                "U"
-              )}
-            </Avatar>
-            {isEditing && (
-              <IconButton
-                size="small"
-                onClick={handleAvatarSelect}
-                sx={{
-                  position: "absolute",
-                  bottom: 0,
-                  right: 0,
-                  bgcolor: "primary.main",
-                  color: "white",
-                  "&:hover": { bgcolor: "primary.dark" },
-                }}
-              >
-                <Edit fontSize="small" />
-              </IconButton>
-            )}
-          </Box>
-          <Box 
-            sx={{ 
-              flex: 1, 
-              pb: 1,
-            }}
-          >
-            <Typography
-              variant={isMobile ? "h6" : "h5"}
-              sx={{
-                fontWeight: 700,
-                color: "#fff",
-                textShadow: "0 2px 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.5)",
-              }}
-            >
-              {profile.displayName || "Runner"}
-            </Typography>
-            <Typography 
-              variant="body2"
-              sx={{ 
-                color: "#fff",
-                textShadow: "0 1px 4px rgba(0,0,0,0.8)",
-                fontWeight: 500,
-              }}
-            >
-              {user.email}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Hidden file inputs */}
-        <input
-          ref={avatarInputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: "none" }}
-          onChange={handleAvatarChange}
-        />
-        <input
-          ref={coverInputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: "none" }}
-          onChange={handleCoverChange}
-        />
-      </Box>
-
-      {/* Tabs */}
-      <Box sx={{ px: isMobile ? 2 : responsiveSpacing.pageContainer }}>
-        <Tabs
-          value={activeTab}
-          onChange={(e, newValue) => setActiveTab(newValue)}
-          variant={isMobile ? "fullWidth" : "standard"}
-          sx={{
-            borderBottom: 1,
-            borderColor: "divider",
-            mb: responsiveSpacing.sectionGap,
-            "& .MuiTab-root": {
-              minHeight: isMobile ? 56 : 64,
-              fontSize: isMobile ? "0.75rem" : "0.875rem",
+            position: "relative",
+            height: isMobile ? 150 : 200,
+            backgroundImage: profile.coverUrl
+              ? `url(${profile.coverUrl})`
+              : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, #764ba2 100%)`,
+            backgroundSize: "cover",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "center",
+            mb: isMobile ? 2 : 2,
+            "&::after": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background:
+                "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)",
+              pointerEvents: "none",
             },
           }}
         >
-          <Tab
-            icon={<Person fontSize={isMobile ? "small" : "medium"} />}
-            label="Profile"
-            iconPosition="top"
-          />
-          <Tab
-            icon={<CalendarToday fontSize={isMobile ? "small" : "medium"} />}
-            label={isMobile ? `${pastEvents.length}` : `History (${pastEvents.length})`}
-            iconPosition="top"
-          />
-          <Tab
-            icon={<EmojiEvents fontSize={isMobile ? "small" : "medium"} />}
-            label={isMobile ? `${badges.length}` : `Badges (${badges.length})`}
-            iconPosition="top"
-          />
-        </Tabs>
+          {isEditing && (
+            <IconButton
+              onClick={handleCoverSelect}
+              sx={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                bgcolor: "background.paper",
+                "&:hover": { bgcolor: "action.hover" },
+                zIndex: 1,
+              }}
+            >
+              {uploadingCover ? <HourglassEmpty /> : <CameraAlt />}
+            </IconButton>
+          )}
 
+          {/* Avatar and Name */}
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: -25,
+              left: isMobile ? 2 : 32,
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 1,
+              width: isMobile ? "calc(100% - 16px)" : "auto",
+              zIndex: 1,
+            }}
+          >
+            <Box sx={{ position: "relative" }}>
+              <Avatar
+                src={profile.avatarUrl}
+                sx={{
+                  width: isMobile ? 100 : 120,
+                  height: isMobile ? 100 : 120,
+                  border: "4px solid",
+                  borderColor: "background.paper",
+                  fontSize: isMobile ? "2.5rem" : "3rem",
+                  bgcolor: theme.palette.primary.main,
+                  cursor: isEditing ? "pointer" : "default",
+                }}
+                onClick={isEditing ? handleAvatarSelect : undefined}
+              >
+                {uploadingAvatar ? (
+                  <CircularProgress size={40} color="inherit" />
+                ) : profile.displayName ? (
+                  profile.displayName.charAt(0).toUpperCase()
+                ) : (
+                  "U"
+                )}
+              </Avatar>
+              {isEditing && (
+                <IconButton
+                  size="small"
+                  onClick={handleAvatarSelect}
+                  sx={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    bgcolor: "primary.main",
+                    color: "white",
+                    "&:hover": { bgcolor: "primary.dark" },
+                  }}
+                >
+                  <Edit fontSize="small" />
+                </IconButton>
+              )}
+            </Box>
+            <Box
+              sx={{
+                flex: 1,
+                pb: 1,
+              }}
+            >
+              <Typography
+                variant={isMobile ? "h6" : "h5"}
+                sx={{
+                  fontWeight: 700,
+                  color: "#fff",
+                  textShadow:
+                    "0 2px 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.5)",
+                }}
+              >
+                {profile.displayName || "Runner"}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "#fff",
+                  textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+                  fontWeight: 500,
+                }}
+              >
+                {user.email}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Hidden file inputs */}
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handleAvatarChange}
+          />
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handleCoverChange}
+          />
+        </Box>
+
+        {/* Tabs */}
+        <Box
+          sx={{
+            px: isMobile ? 2 : responsiveSpacing.pageContainer,
+            bgcolor: "background.paper",
+          }}
+        >
+          <Tabs
+            value={activeTab}
+            onChange={(e, newValue) => setActiveTab(newValue)}
+            variant={isMobile ? "scrollable" : "standard"}
+            scrollButtons={isMobile ? "auto" : false}
+            sx={{
+              borderBottom: 1,
+              borderColor: "divider",
+              "& .MuiTab-root": {
+                minHeight: isMobile ? 56 : 64,
+                fontSize: isMobile ? "0.75rem" : "0.875rem",
+              },
+            }}
+          >
+            <Tab
+              icon={<Person fontSize={isMobile ? "small" : "medium"} />}
+              label="Profile"
+              iconPosition="start"
+            />
+            <Tab
+              icon={<CalendarToday fontSize={isMobile ? "small" : "medium"} />}
+              label="History"
+              iconPosition="start"
+            />
+            <Tab
+              icon={<EmojiEvents fontSize={isMobile ? "small" : "medium"} />}
+              label="Badges"
+              iconPosition="start"
+            />
+          </Tabs>
+        </Box>
+      </Box>
+
+      {/* Scrollable Content */}
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          px: isMobile ? 2 : responsiveSpacing.pageContainer,
+          py: responsiveSpacing.sectionGap,
+        }}
+      >
         {/* Tab Content */}
         {activeTab === 0 && (
           <Box>
@@ -375,14 +387,14 @@ function Profile({ user }) {
                   placeholder="Your name"
                   sx={{ mb: 2 }}
                 />
-                <TextField
+                {/* <TextField
                   fullWidth
                   label="Email"
                   name="email"
                   value={user.email}
                   disabled
                   sx={{ mb: 2 }}
-                />
+                /> */}
                 <TextField
                   fullWidth
                   multiline
@@ -419,15 +431,16 @@ function Profile({ user }) {
                     <MenuItem value="Ultra">Ultra</MenuItem>
                   </Select>
                 </FormControl>
-                <TextField
+                {/* <TextField
                   fullWidth
                   label="Club Name"
                   name="clubName"
                   value={profile.clubName}
                   onChange={handleInputChange}
                   placeholder="Your running club"
+                  disabled
                   sx={{ mb: 3 }}
-                />
+                /> */}
                 <Box sx={{ display: "flex", gap: 2 }}>
                   <Button
                     variant="outlined"
@@ -441,12 +454,19 @@ function Profile({ user }) {
                 </Box>
               </Box>
             ) : (
-              <Box>
+              <Box
+                sx={{
+                  maxWidth: 800,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  gap: 2,
+                }}
+              >
                 {/* Profile Details - Clean List Style */}
                 <Box
                   sx={{
-                    mb: 3,
-                    bgcolor: isMobile ? "transparent" : "background.paper",
+                    mb: 2,
                     borderRadius: isMobile ? 0 : 2,
                     overflow: "hidden",
                   }}
@@ -456,15 +476,11 @@ function Profile({ user }) {
                     <Box
                       sx={{
                         display: "flex",
-                        alignItems: "flex-start",
+                        alignItems: "center",
                         gap: 2,
-                        py: 2,
                         px: isMobile ? 2 : 3,
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                        bgcolor: "background.paper",
-                        mb: isMobile ? 1 : 0,
                         borderRadius: isMobile ? 2 : 0,
+                        mt: isMobile ? 1 : 2,
                       }}
                     >
                       <Description
@@ -482,13 +498,13 @@ function Profile({ user }) {
                         >
                           Bio
                         </Typography>
-                        <Typography 
-                          variant="body1" 
-                          sx={{ 
+                        <Typography
+                          variant="body1"
+                          sx={{
                             fontWeight: 500,
                             wordBreak: "break-word",
                             overflowWrap: "anywhere",
-                            whiteSpace: "normal"
+                            whiteSpace: "normal",
                           }}
                         >
                           {profile.bio}
@@ -502,22 +518,46 @@ function Profile({ user }) {
                     sx={{
                       display: "flex",
                       flexDirection: isMobile ? "column" : "row",
-                      gap: isMobile ? 1 : 0,
                     }}
                   >
+                    {/* Club */}
                     <Box
                       sx={{
                         display: "flex",
                         alignItems: "center",
                         gap: 2,
-                        py: 2,
                         px: isMobile ? 2 : 3,
-                        flex: 1,
-                        borderBottom: isMobile ? "none" : "1px solid",
-                        borderRight: isMobile ? "none" : "1px solid",
-                        borderColor: "divider",
-                        bgcolor: "background.paper",
                         borderRadius: isMobile ? 2 : 0,
+                        mt: isMobile ? 1 : 2,
+                      }}
+                    >
+                      <Group
+                        sx={{
+                          color: theme.palette.primary.main,
+                          fontSize: isMobile ? 24 : 28,
+                        }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mb: 0.5 }}
+                        >
+                          Club
+                        </Typography>
+                        <Typography variant="body1" fontWeight={500}>
+                          {profile.clubName} - {profile.role}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        px: isMobile ? 2 : 3,
+                        borderRadius: isMobile ? 2 : 0,
+                        mt: isMobile ? 1 : 2,
                       }}
                     >
                       <LocationOn
@@ -545,13 +585,9 @@ function Profile({ user }) {
                         display: "flex",
                         alignItems: "center",
                         gap: 2,
-                        py: 2,
                         px: isMobile ? 2 : 3,
-                        flex: 1,
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                        bgcolor: "background.paper",
                         borderRadius: isMobile ? 2 : 0,
+                        mt: isMobile ? 1 : 2,
                       }}
                     >
                       <DirectionsRun
@@ -574,50 +610,29 @@ function Profile({ user }) {
                       </Box>
                     </Box>
                   </Box>
-
-                  {/* Club */}
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      py: 2,
-                      px: isMobile ? 2 : 3,
-                      bgcolor: "background.paper",
-                      borderRadius: isMobile ? 2 : 0,
-                      mt: isMobile ? 1 : 0,
-                    }}
-                  >
-                    <Group
-                      sx={{
-                        color: theme.palette.primary.main,
-                        fontSize: isMobile ? 24 : 28,
-                      }}
-                    />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: "block", mb: 0.5 }}
-                      >
-                        Club
-                      </Typography>
-                      <Typography variant="body1" fontWeight={500}>
-                        {profile.clubName || "Not set"}
-                      </Typography>
-                    </Box>
-                  </Box>
                 </Box>
 
-                <Button
-                  variant="contained"
-                  startIcon={<Edit />}
-                  onClick={() => setIsEditing(true)}
-                  fullWidth={isMobile}
-                  sx={{ borderRadius: isMobile ? 2 : 1 }}
+                <Box
+                  sx={{
+                    display: "flex",
+                    //justifyContent: "flex-end",
+                    alignItems: "center",
+                  }}
                 >
-                  Edit Profile
-                </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<Edit />}
+                    onClick={() => setIsEditing(true)}
+                    fullWidth={isMobile}
+                    sx={{
+                      position: "relative",
+                      "&:hover": { bgcolor: "#4F46E5" },
+                      ...(isMobile && { position: "relative", mb: 2 }),
+                    }}
+                  >
+                    Edit Profile
+                  </Button>
+                </Box>
               </Box>
             )}
           </Box>

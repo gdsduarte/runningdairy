@@ -33,15 +33,16 @@ import {
   List,
   ListItem,
   Divider,
+  Avatar,
 } from "@mui/material";
 import {
   Delete,
   Edit,
-  ContentCopy,
   Cancel,
   PersonAdd,
   Group,
   Email,
+  MoreVert,
 } from "@mui/icons-material";
 import {
   inviteMember,
@@ -51,8 +52,9 @@ import {
   removeMember,
   cancelInvitation,
 } from "../services";
+import { getClubDetails } from "../services/clubService";
 
-function AdminMembers({ user, clubId, userRole }) {
+function AdminPanel({ user, clubId, userRole }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   
@@ -110,8 +112,17 @@ function AdminMembers({ user, clubId, userRole }) {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
-  const [invitationLink, setInvitationLink] = useState("");
   const [alert, setAlert] = useState({ show: false, type: "", message: "" });
+  const [clubData, setClubData] = useState(null);
+  const [clubEditMode, setClubEditMode] = useState(false);
+  const [clubForm, setClubForm] = useState({
+    name: "",
+    description: "",
+    location: "",
+    website: "",
+    image: "",
+  });
+  const [imagePreview, setImagePreview] = useState("");
 
   const [inviteForm, setInviteForm] = useState({
     email: "",
@@ -134,9 +145,10 @@ function AdminMembers({ user, clubId, userRole }) {
     
     setLoading(true);
     try {
-      const [membersResult, invitationsResult] = await Promise.all([
+      const [membersResult, invitationsResult, clubResult] = await Promise.all([
         getClubMembers(clubId),
         getPendingInvitations(clubId),
+        getClubDetails(clubId),
       ]);
 
       if (membersResult.success) {
@@ -145,6 +157,18 @@ function AdminMembers({ user, clubId, userRole }) {
 
       if (invitationsResult.success) {
         setInvitations(invitationsResult.invitations);
+      }
+
+      if (clubResult.success) {
+        setClubData(clubResult.club);
+        setClubForm({
+          name: clubResult.club.name || "",
+          description: clubResult.club.description || "",
+          location: clubResult.club.location || "",
+          website: clubResult.club.website || "",
+          image: clubResult.club.image || "",
+        });
+        setImagePreview(clubResult.club.image || "");
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -174,18 +198,13 @@ function AdminMembers({ user, clubId, userRole }) {
     const result = await inviteMember(inviteForm, clubId, user.uid);
 
     if (result.success) {
-      setInvitationLink(result.invitationLink);
-      showAlert("success", "Member invited successfully!");
+      showAlert("success", result.message || "Invitation email sent successfully!");
       setInviteForm({ email: "", displayName: "", role: "member" });
+      setInviteDialogOpen(false);
       loadData();
     } else {
       showAlert("error", result.error);
     }
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(invitationLink);
-    showAlert("success", "Link copied to clipboard!");
   };
 
   const handleUpdateRole = async () => {
@@ -245,6 +264,71 @@ function AdminMembers({ user, clubId, userRole }) {
     }
   };
 
+  const handleResendInvitation = async (invitation) => {
+    try {
+      const { sendInvitationEmail } = await import('../services/emailService');
+      
+      // Get club name
+      const clubName = clubData?.name || 'Running Club';
+      
+      const result = await sendInvitationEmail(
+        invitation.email,
+        invitation.displayName,
+        invitation.id,
+        clubName
+      );
+
+      if (result.success) {
+        showAlert("success", "Invitation email resent successfully!");
+      } else {
+        showAlert("error", "Failed to resend email");
+      }
+    } catch (error) {
+      console.error('Error resending invitation:', error);
+      showAlert("error", "Failed to resend invitation email");
+    }
+  };
+
+  const handleUpdateClub = async () => {
+    if (!isAdmin) {
+      showAlert("error", "Only admins can update club settings");
+      return;
+    }
+
+    try {
+      const { db } = await import('../firebase');
+      const { doc, updateDoc } = await import('firebase/firestore');
+      
+      const clubRef = doc(db, 'clubs', clubId);
+      await updateDoc(clubRef, {
+        name: clubForm.name,
+        description: clubForm.description,
+        location: clubForm.location,
+        website: clubForm.website,
+        image: clubForm.image,
+      });
+
+      showAlert("success", "Club settings updated successfully!");
+      setClubEditMode(false);
+      loadData();
+    } catch (error) {
+      console.error("Error updating club:", error);
+      showAlert("error", "Failed to update club settings");
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        setClubForm({ ...clubForm, image: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const getRoleColor = (role) => {
     switch (role) {
       case "admin":
@@ -271,10 +355,10 @@ function AdminMembers({ user, clubId, userRole }) {
       >
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, fontSize: { xs: "1.5rem", md: "2.125rem" } }}>
-            Club Members
+            Admin Panel
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage your club members and invitations
+            Manage your club settings, members and invitations
           </Typography>
         </Box>
         <Button
@@ -342,9 +426,12 @@ function AdminMembers({ user, clubId, userRole }) {
           value={activeTab}
           onChange={(e, newValue) => setActiveTab(newValue)}
           sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}
+          variant={isMobile ? "scrollable" : "standard"}
+          scrollButtons={isMobile ? "auto" : false}
         >
+          <Tab label="Club Settings" icon={<Settings />} iconPosition="start" />
           <Tab label="Members" icon={<Group />} iconPosition="start" />
-          <Tab label="Pending Invitations" icon={<Email />} iconPosition="start" />
+          <Tab label="Invitations" icon={<Email />} iconPosition="start" />
         </Tabs>
 
         <CardContent>
@@ -354,8 +441,234 @@ function AdminMembers({ user, clubId, userRole }) {
             </Box>
           ) : (
             <>
-              {/* Members Tab */}
+              {/* Club Settings Tab */}
               {activeTab === 0 && (
+                <Box>
+                  {!isAdmin ? (
+                    <Alert severity="warning">
+                      Only admins can modify club settings
+                    </Alert>
+                  ) : clubEditMode ? (
+                    <Box>
+                      <Grid container spacing={3}>
+                        {/* Club Image */}
+                        <Grid item xs={12} sx={{ textAlign: "center" }}>
+                          <Box sx={{ mb: 2 }}>
+                            <Avatar
+                              src={imagePreview}
+                              sx={{
+                                width: { xs: 120, md: 150 },
+                                height: { xs: 120, md: 150 },
+                                mx: "auto",
+                                mb: 2,
+                              }}
+                            >
+                              <Business sx={{ fontSize: { xs: 60, md: 80 } }} />
+                            </Avatar>
+                          </Box>
+                          <Button
+                            variant="outlined"
+                            component="label"
+                            startIcon={<PhotoCamera />}
+                          >
+                            Upload Image
+                            <input
+                              type="file"
+                              hidden
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                            />
+                          </Button>
+                        </Grid>
+
+                        {/* Club Name */}
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            label="Club Name"
+                            value={clubForm.name}
+                            onChange={(e) =>
+                              setClubForm({ ...clubForm, name: e.target.value })
+                            }
+                            required
+                          />
+                        </Grid>
+
+                        {/* Description */}
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            label="Description"
+                            value={clubForm.description}
+                            onChange={(e) =>
+                              setClubForm({ ...clubForm, description: e.target.value })
+                            }
+                            multiline
+                            rows={4}
+                          />
+                        </Grid>
+
+                        {/* Location */}
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Location"
+                            value={clubForm.location}
+                            onChange={(e) =>
+                              setClubForm({ ...clubForm, location: e.target.value })
+                            }
+                          />
+                        </Grid>
+
+                        {/* Website */}
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Website"
+                            value={clubForm.website}
+                            onChange={(e) =>
+                              setClubForm({ ...clubForm, website: e.target.value })
+                            }
+                            placeholder="https://"
+                          />
+                        </Grid>
+
+                        {/* Action Buttons */}
+                        <Grid item xs={12}>
+                          <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+                            <Button
+                              variant="outlined"
+                              onClick={() => {
+                                setClubEditMode(false);
+                                setClubForm({
+                                  name: clubData?.name || "",
+                                  description: clubData?.description || "",
+                                  location: clubData?.location || "",
+                                  website: clubData?.website || "",
+                                  image: clubData?.image || "",
+                                });
+                                setImagePreview(clubData?.image || "");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="contained"
+                              onClick={handleUpdateClub}
+                              sx={{
+                                bgcolor: "#6366f1",
+                                "&:hover": { bgcolor: "#4F46E5" },
+                              }}
+                            >
+                              Save Changes
+                            </Button>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  ) : (
+                    <Box>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                        <Typography variant="h6">Club Information</Typography>
+                        <Button
+                          variant="contained"
+                          startIcon={<Edit />}
+                          onClick={() => setClubEditMode(true)}
+                          sx={{
+                            bgcolor: "#6366f1",
+                            "&:hover": { bgcolor: "#4F46E5" },
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </Box>
+
+                      <Grid container spacing={3}>
+                        {/* Club Image */}
+                        <Grid item xs={12} sx={{ textAlign: "center" }}>
+                          <Avatar
+                            src={clubData?.image}
+                            sx={{
+                              width: { xs: 120, md: 150 },
+                              height: { xs: 120, md: 150 },
+                              mx: "auto",
+                            }}
+                          >
+                            <Business sx={{ fontSize: { xs: 60, md: 80 } }} />
+                          </Avatar>
+                        </Grid>
+
+                        {/* Club Details */}
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Club Name
+                          </Typography>
+                          <Typography variant="body1" sx={{ mb: 2 }}>
+                            {clubData?.name || "Not set"}
+                          </Typography>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Description
+                          </Typography>
+                          <Typography variant="body1" sx={{ mb: 2 }}>
+                            {clubData?.description || "No description"}
+                          </Typography>
+                        </Grid>
+
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Location
+                          </Typography>
+                          <Typography variant="body1">
+                            {clubData?.location || "Not set"}
+                          </Typography>
+                        </Grid>
+
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Website
+                          </Typography>
+                          <Typography variant="body1">
+                            {clubData?.website ? (
+                              <a href={clubData.website} target="_blank" rel="noopener noreferrer">
+                                {clubData.website}
+                              </a>
+                            ) : (
+                              "Not set"
+                            )}
+                          </Typography>
+                        </Grid>
+
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Plan Type
+                          </Typography>
+                          <Chip
+                            label={clubData?.planType || "Unknown"}
+                            color={clubData?.planType === "7day-trial" ? "warning" : "success"}
+                          />
+                        </Grid>
+
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Created
+                          </Typography>
+                          <Typography variant="body1">
+                            {clubData?.createdAt
+                              ? new Date(clubData.createdAt.seconds * 1000).toLocaleDateString()
+                              : "N/A"}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  )}
+                </Box>
+              )}
+
+              {/* Members Tab */}
+              {activeTab === 1 && (
                 <>
                   {isMobile ? (
                     /* Mobile View - Card List */
@@ -522,7 +835,7 @@ function AdminMembers({ user, clubId, userRole }) {
               )}
 
               {/* Pending Invitations Tab */}
-              {activeTab === 1 && (
+              {activeTab === 2 && (
                 <>
                   {isMobile ? (
                     /* Mobile View - Card List */
@@ -559,23 +872,24 @@ function AdminMembers({ user, clubId, userRole }) {
                                       </Typography>
                                     </Box>
                                     <Box sx={{ display: "flex", gap: 0.5 }}>
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => {
-                                          const link = `${window.location.origin}/setup-account?token=${invitation.id}`;
-                                          navigator.clipboard.writeText(link);
-                                          showAlert("success", "Link copied!");
-                                        }}
-                                      >
-                                        <ContentCopy fontSize="small" />
-                                      </IconButton>
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => handleCancelInvitation(invitation.id)}
-                                        color="error"
-                                      >
-                                        <Cancel fontSize="small" />
-                                      </IconButton>
+                                      <Tooltip title="Resend Invitation Email">
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => handleResendInvitation(invitation)}
+                                          color="primary"
+                                        >
+                                          <Send fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <Tooltip title="Cancel Invitation">
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => handleCancelInvitation(invitation.id)}
+                                          color="error"
+                                        >
+                                          <Cancel fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
                                     </Box>
                                   </Box>
                                   <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
@@ -648,16 +962,13 @@ function AdminMembers({ user, clubId, userRole }) {
                                 : "N/A"}
                             </TableCell>
                             <TableCell align="right">
-                              <Tooltip title="Copy Invitation Link">
+                              <Tooltip title="Resend Invitation Email">
                                 <IconButton
                                   size="small"
-                                  onClick={() => {
-                                    const link = `${window.location.origin}/setup-account?token=${invitation.id}`;
-                                    navigator.clipboard.writeText(link);
-                                    showAlert("success", "Link copied!");
-                                  }}
+                                  onClick={() => handleResendInvitation(invitation)}
+                                  color="primary"
                                 >
-                                  <ContentCopy fontSize="small" />
+                                  <Send fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                               <Tooltip title="Cancel Invitation">
@@ -689,7 +1000,6 @@ function AdminMembers({ user, clubId, userRole }) {
         open={inviteDialogOpen}
         onClose={() => {
           setInviteDialogOpen(false);
-          setInvitationLink("");
           setInviteForm({ email: "", displayName: "", role: "member" });
         }}
         maxWidth="sm"
@@ -704,6 +1014,9 @@ function AdminMembers({ user, clubId, userRole }) {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
+            <Alert severity="info" sx={{ mb: 1 }}>
+              An invitation email will be sent to the member with instructions to set up their account.
+            </Alert>
             <TextField
               fullWidth
               label="Email Address"
@@ -713,6 +1026,7 @@ function AdminMembers({ user, clubId, userRole }) {
                 setInviteForm({ ...inviteForm, email: e.target.value })
               }
               required
+              helperText="Member will receive an invitation email at this address"
             />
             <TextField
               fullWidth
@@ -739,55 +1053,27 @@ function AdminMembers({ user, clubId, userRole }) {
                 ))}
               </Select>
             </FormControl>
-
-            {invitationLink && (
-              <Alert
-                severity="success"
-                action={
-                  <Button color="inherit" size="small" onClick={handleCopyLink}>
-                    Copy Link
-                  </Button>
-                }
-              >
-                Invitation created! Share this link with the member:
-                <Box
-                  sx={{
-                    mt: 1,
-                    p: 1,
-                    bgcolor: "background.paper",
-                    borderRadius: 1,
-                    wordBreak: "break-all",
-                    fontSize: "0.875rem",
-                  }}
-                >
-                  {invitationLink}
-                </Box>
-              </Alert>
-            )}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button
             onClick={() => {
               setInviteDialogOpen(false);
-              setInvitationLink("");
               setInviteForm({ email: "", displayName: "", role: "member" });
             }}
           >
-            {invitationLink ? "Close" : "Cancel"}
+            Cancel
           </Button>
-          {!invitationLink && (
-            <Button
-              variant="contained"
-              onClick={handleInviteMember}
-              sx={{
-                bgcolor: "#6366f1",
-                "&:hover": { bgcolor: "#4F46E5" },
-              }}
-            >
-              Send Invitation
-            </Button>
-          )}
+          <Button
+            variant="contained"
+            onClick={handleInviteMember}
+            sx={{
+              bgcolor: "#6366f1",
+              "&:hover": { bgcolor: "#4F46E5" },
+            }}
+          >
+            Send Invitation Email
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -853,4 +1139,4 @@ function AdminMembers({ user, clubId, userRole }) {
   );
 }
 
-export default AdminMembers;
+export default AdminPanel;
