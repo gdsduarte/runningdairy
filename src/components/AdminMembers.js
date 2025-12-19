@@ -11,7 +11,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   IconButton,
   Chip,
   Dialog,
@@ -33,11 +32,9 @@ import {
   useTheme,
   List,
   ListItem,
-  ListItemText,
   Divider,
 } from "@mui/material";
 import {
-  Add,
   Delete,
   Edit,
   ContentCopy,
@@ -45,7 +42,6 @@ import {
   PersonAdd,
   Group,
   Email,
-  MoreVert,
 } from "@mui/icons-material";
 import {
   inviteMember,

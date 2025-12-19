@@ -15,8 +15,6 @@ import {
   DirectionsRun,
   Schedule,
   CheckCircle,
-  Stars,
-  PeopleAlt,
 } from "@mui/icons-material";
 
 function Dashboard({ user, onEventClick, onAddEvent }) {

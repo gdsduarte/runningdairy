@@ -32,7 +32,6 @@ import {
 import {
   responsiveSpacing,
   responsiveSizing,
-  componentStyles,
 } from "../utils/responsive";
 
 function EventCalendar({ onEventClick, user, onAddEvent }) {
@@ -74,7 +73,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
     );
   };
 
-  const setYearDirectly = (year) => {
+  /* const setYearDirectly = (year) => {
     const newDate = new Date(currentMonth);
     newDate.setFullYear(year);
     setCurrentMonth(newDate);
@@ -84,7 +83,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
         month: newDate.getMonth(),
       })
     );
-  };
+  }; */
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -616,11 +615,15 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
             >
               <IconButton
                 onClick={() => {
-                  const newMonth = currentMonth.getMonth() - 1;
-                  setMonthDirectly(newMonth < 0 ? 11 : newMonth);
-                  if (newMonth < 0) {
-                    setYearDirectly(currentMonth.getFullYear() - 1);
-                  }
+                  const newDate = new Date(currentMonth);
+                  newDate.setMonth(newDate.getMonth() - 1);
+                  setCurrentMonth(newDate);
+                  dispatch(
+                    setSelectedMonth({
+                      year: newDate.getFullYear(),
+                      month: newDate.getMonth(),
+                    })
+                  );
                 }}
                 size="small"
               >
@@ -634,11 +637,15 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               </Typography>
               <IconButton
                 onClick={() => {
-                  const newMonth = currentMonth.getMonth() + 1;
-                  setMonthDirectly(newMonth > 11 ? 0 : newMonth);
-                  if (newMonth > 11) {
-                    setYearDirectly(currentMonth.getFullYear() + 1);
-                  }
+                  const newDate = new Date(currentMonth);
+                  newDate.setMonth(newDate.getMonth() + 1);
+                  setCurrentMonth(newDate);
+                  dispatch(
+                    setSelectedMonth({
+                      year: newDate.getFullYear(),
+                      month: newDate.getMonth(),
+                    })
+                  );
                 }}
                 size="small"
               >
@@ -699,9 +706,17 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                 }}
               >
                 <IconButton
-                  onClick={() =>
-                    setYearDirectly(currentMonth.getFullYear() - 1)
-                  }
+                  onClick={() => {
+                    const newDate = new Date(currentMonth);
+                    newDate.setFullYear(newDate.getFullYear() - 1);
+                    setCurrentMonth(newDate);
+                    dispatch(
+                      setSelectedMonth({
+                        year: newDate.getFullYear(),
+                        month: newDate.getMonth(),
+                      })
+                    );
+                  }}
                   size="small"
                 >
                   <ChevronLeft />
@@ -713,9 +728,17 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                   {currentMonth.getFullYear()}
                 </Typography>
                 <IconButton
-                  onClick={() =>
-                    setYearDirectly(currentMonth.getFullYear() + 1)
-                  }
+                  onClick={() => {
+                    const newDate = new Date(currentMonth);
+                    newDate.setFullYear(newDate.getFullYear() + 1);
+                    setCurrentMonth(newDate);
+                    dispatch(
+                      setSelectedMonth({
+                        year: newDate.getFullYear(),
+                        month: newDate.getMonth(),
+                      })
+                    );
+                  }}
                   size="small"
                 >
                   <ChevronRight />
@@ -838,6 +861,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
             ...(isMobile && {
               position: "fixed",
               top: dialogExpanded ? 64 : "50vh", // Account for top app bar (64px) when expanded
+              //bottom: 56, // Account for bottom navigation bar
               m: 0,
               borderRadius: "16px 16px 0 0",
               transition: "top 0.3s ease-in-out", // Smooth transition
@@ -902,7 +926,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              mb: 2,
+              //mb: 2,
             }}
           >
             <Typography variant="h3">
@@ -969,7 +993,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               ))}
             </>
           ) : (
-            <Box sx={{ textAlign: "center", py: 4 }}>
+            <Box sx={{ textAlign: "center", py: 2 }}>
               <CalendarToday
                 sx={{ fontSize: 48, color: "text.disabled", mb: 2 }}
               />

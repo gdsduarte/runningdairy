@@ -9,7 +9,6 @@ import {
   IconButton,
   useMediaQuery,
   useTheme,
-  Divider,
   Typography,
   AppBar,
   Toolbar,

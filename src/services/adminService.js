@@ -1,4 +1,4 @@
-import { db, auth } from '../firebase';
+import { db} from '../firebase';
 import { 
   collection, 
   doc, 
@@ -9,13 +9,7 @@ import {
   where, 
   serverTimestamp,
   updateDoc,
-  deleteDoc
 } from 'firebase/firestore';
-import { 
-  sendPasswordResetEmail,
-  createUserWithEmailAndPassword,
-  sendSignInLinkToEmail
-} from 'firebase/auth';
 
 // Invite a new member to the club
 export const inviteMember = async (memberData, clubId, adminUid) => {
