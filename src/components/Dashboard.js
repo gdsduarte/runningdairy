@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import {
   Box,
@@ -17,30 +17,92 @@ import {
   CheckCircle,
 } from "@mui/icons-material";
 
+// Helper function to convert distance values to kilometers
+function convertDistanceToKm(distance) {
+  if (!distance) return 0;
+
+  const distanceMap = {
+    "5K": 5,
+    "10K": 10,
+    "15K": 15,
+    "Half Marathon": 21.1,
+    Marathon: 42.2,
+    Other: 0,
+  };
+
+  return distanceMap[distance] || 0;
+}
+
 function Dashboard({ user, onEventClick, onAddEvent }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const activityScrollRef = useRef(null);
+
+  // State for selected month in activity bars
+  const [selectedMonthStats, setSelectedMonthStats] = useState(null);
+
   // Get events from Redux store
   const events = useSelector((state) => state.events.list);
   const loading = useSelector((state) => state.events.loading);
 
+  // Use current date directly for dashboard display (not dependent on calendar navigation)
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+
+  // Get the current month's start and end dates
+  const monthStart = new Date(currentYear, currentMonth, 1);
+  const monthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+
+  // Get month name for display
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const currentMonthName = monthNames[currentMonth];
+
   // Filter events
   const now = new Date();
-  const upcomingEvents = events.filter((event) => event.date >= now);
-  const myUpcomingEvents = upcomingEvents.filter((event) =>
+
+  // For Active Events section: show events from current month only
+  const selectedMonthEvents = events.filter((event) => {
+    const eventDate =
+      event.date instanceof Date ? event.date : new Date(event.date);
+    return eventDate >= monthStart && eventDate <= monthEnd;
+  });
+  const upcomingEventsInMonth = selectedMonthEvents.filter(
+    (event) => event.date >= now
+  );
+
+  // For Events I'm Attending section: show ALL future events I've joined (not filtered by month)
+  const allUpcomingEvents = events.filter((event) => event.date >= now);
+  const myUpcomingEvents = allUpcomingEvents.filter((event) =>
     event.attendees?.some((attendee) => attendee.uid === user.uid)
   );
-  const myCreatedEvents = events.filter(
+
+  const myCreatedEvents = selectedMonthEvents.filter(
     (event) => event.createdBy === user.uid && event.date >= now
   );
 
-  // Get next 3 upcoming events (non-recurring)
-  const nextEvents = upcomingEvents
+  // Get next 3 upcoming events from selected month (non-recurring)
+  const nextEvents = upcomingEventsInMonth
     .filter((event) => !event.isRecurring)
     .slice(0, 3);
 
   // Get recurring events and group them by name to show only next occurrence
-  const recurringEvents = upcomingEvents.filter((event) => event.isRecurring);
+  const recurringEvents = upcomingEventsInMonth.filter(
+    (event) => event.isRecurring
+  );
 
   // Group recurring events by name and get the next occurrence for each
   const groupedRecurringEvents = recurringEvents.reduce((acc, event) => {
@@ -53,7 +115,8 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
 
   const nextRecurringEvents = Object.values(groupedRecurringEvents);
 
-  // Calculate monthly statistics: 2 months before, current month, 3 months after
+  // Calculate monthly statistics: show all months of current and next year
+  // This should be based on the CURRENT date, not the selected calendar month
   const getMonthlyStats = () => {
     const months = [];
     const monthNames = [
@@ -71,37 +134,85 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
       "Dec",
     ];
 
-    // Loop from 2 months before to 3 months after (total 6 months)
-    for (let i = -2; i <= 3; i++) {
-      const date = new Date();
-      date.setMonth(date.getMonth() + i);
-      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    // Use current date for activity bars (not selected month from calendar)
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonthIndex = currentDate.getMonth();
 
-      // All events in this month (past and upcoming)
-      const totalEventsInMonth = events.filter((event) => {
-        const eventDate =
-          event.date instanceof Date ? event.date : new Date(event.date);
-        return eventDate >= monthStart && eventDate <= monthEnd;
-      });
+    // Show all 12 months of the current year plus all 12 months of next year
+    for (let year = currentYear; year <= currentYear + 1; year++) {
+      for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+        const monthStart = new Date(year, monthIndex, 1);
+        const monthEnd = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
 
-      // Events user completed in this month (past only)
-      const completedEventsInMonth = events.filter((event) => {
-        const eventDate =
-          event.date instanceof Date ? event.date : new Date(event.date);
-        return (
-          eventDate >= monthStart &&
-          eventDate <= monthEnd &&
-          eventDate < now &&
-          event.attendees?.some((attendee) => attendee.uid === user.uid)
+        // All events in this month (for calculating stats)
+        const allEventsInMonth = events.filter((event) => {
+          const eventDate =
+            event.date instanceof Date ? event.date : new Date(event.date);
+          return eventDate >= monthStart && eventDate <= monthEnd;
+        });
+
+        // Future events only (for the bar display)
+        const totalEventsInMonth = allEventsInMonth.filter((event) => {
+          const eventDate =
+            event.date instanceof Date ? event.date : new Date(event.date);
+          return eventDate >= now;
+        });
+
+        // Events user completed (past events user attended)
+        const completedEventsInMonth = allEventsInMonth.filter((event) => {
+          const eventDate =
+            event.date instanceof Date ? event.date : new Date(event.date);
+          return (
+            eventDate < now &&
+            event.attendees?.some((attendee) => attendee.uid === user.uid)
+          );
+        });
+
+        // Events user will attend (future events user is registered for)
+        const upcomingEventsInMonth = allEventsInMonth.filter((event) => {
+          const eventDate =
+            event.date instanceof Date ? event.date : new Date(event.date);
+          return (
+            eventDate >= now &&
+            event.attendees?.some((attendee) => attendee.uid === user.uid)
+          );
+        });
+
+        // Calculate distance completed (from events user already completed)
+        const completedDistance = completedEventsInMonth.reduce(
+          (sum, event) => {
+            const distance = convertDistanceToKm(event.distance);
+            return sum + distance;
+          },
+          0
         );
-      });
 
-      months.push({
-        name: monthNames[date.getMonth()],
-        total: totalEventsInMonth.length,
-        completed: completedEventsInMonth.length,
-      });
+        // Calculate distance upcoming (from events user will attend)
+        const upcomingDistance = upcomingEventsInMonth.reduce((sum, event) => {
+          const distance = convertDistanceToKm(event.distance);
+          return sum + distance;
+        }, 0);
+
+        // Calculate total attendees for the month
+        const totalAttendees = totalEventsInMonth.reduce((sum, event) => {
+          return sum + (event.attendees?.length || 0);
+        }, 0);
+
+        months.push({
+          name: monthNames[monthIndex],
+          year: year,
+          total: totalEventsInMonth.length,
+          completed: completedEventsInMonth.length,
+          upcoming: upcomingEventsInMonth.length,
+          completedDistance: completedDistance,
+          upcomingDistance: upcomingDistance,
+          attendees: totalAttendees,
+          isCurrentMonth:
+            monthIndex === currentMonthIndex && year === currentYear,
+          isFirstMonthOfYear: monthIndex === 0,
+        });
+      }
     }
 
     return months;
@@ -110,15 +221,83 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
   const monthlyStats = getMonthlyStats();
   const maxCount = Math.max(...monthlyStats.map((m) => m.total), 1);
 
+  // Get current month from monthlyStats
+  const currentMonthData = monthlyStats.find((m) => m.isCurrentMonth);
+
+  // Initialize selectedMonthStats with current month when data is ready
+  useEffect(() => {
+    // Only set if we have events loaded and currentMonthData exists
+    if (events.length > 0 && currentMonthData && !selectedMonthStats) {
+      setSelectedMonthStats(currentMonthData);
+    }
+  }, [
+    events.length,
+    currentMonthData.name,
+    currentMonthData.year,
+    currentMonthData,
+    selectedMonthStats,
+  ]);
+
+  // Always use displayMonth which falls back to current month
+  const displayMonth = selectedMonthStats || currentMonthData;
+
+  // Scroll to center the selected month (works on both mobile and desktop)
+  useEffect(() => {
+    if (
+      activityScrollRef.current &&
+      selectedMonthStats &&
+      monthlyStats.length > 0
+    ) {
+      // Use setTimeout to ensure DOM is fully rendered
+      setTimeout(() => {
+        const scrollContainer = activityScrollRef.current;
+        if (scrollContainer) {
+          const selectedIndex = monthlyStats.findIndex(
+            (m) =>
+              m.name === selectedMonthStats.name &&
+              m.year === selectedMonthStats.year
+          );
+
+          if (selectedIndex !== -1) {
+            const monthWidth = 69; // minWidth (60) + gap (9)
+            const yearLabelWidth = 58; // year label width (50) + margin (8)
+
+            // Calculate scroll position accounting for year labels
+            // Count how many year labels appear before the selected month
+            let yearLabelsBeforeSelected = 0;
+            for (let i = 0; i < selectedIndex; i++) {
+              if (monthlyStats[i].isFirstMonthOfYear) {
+                yearLabelsBeforeSelected++;
+              }
+            }
+
+            const totalWidthBeforeSelected =
+              selectedIndex * monthWidth +
+              yearLabelsBeforeSelected * yearLabelWidth;
+            const scrollPosition =
+              totalWidthBeforeSelected -
+              scrollContainer.clientWidth / 2 +
+              monthWidth / 2;
+
+            scrollContainer.scrollTo({
+              left: Math.max(0, scrollPosition),
+              behavior: "smooth",
+            });
+          }
+        }
+      }, 100);
+    }
+  }, [selectedMonthStats, monthlyStats]);
+
   // Get total events attended (past events)
-  const pastEvents = events.filter((event) => {
+  /* const pastEvents = events.filter((event) => {
     const eventDate =
       event.date instanceof Date ? event.date : new Date(event.date);
     return (
       eventDate < now &&
       event.attendees?.some((attendee) => attendee.uid === user.uid)
     );
-  });
+  }); */
 
   const formatTime = (date) => {
     return date.toLocaleTimeString("en-US", {
@@ -193,7 +372,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                       letterSpacing: "0.05em",
                     }}
                   >
-                    Active Events
+                    {currentMonthName} Events
                   </Typography>
                   <Box
                     sx={{
@@ -540,10 +719,13 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                 mb: 2,
                 boxShadow: { xs: 0, md: 4 },
                 bgcolor: "white",
-                //minHeight: isMobile ? "auto" : "30%",
                 overflow: "hidden",
                 display: "flex",
                 flexDirection: "column",
+                ...(isMobile && {
+                  minHeight: "fit-content",
+                  overflow: "hidden",
+                }),
               }}
             >
               <CardContent sx={{ p: 2.5 }}>
@@ -717,7 +899,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                     ))}
                   </Box>
                 ) : (
-                  <Box sx={{ textAlign: "center", py: 4 }}>
+                  <Box sx={{ textAlign: "center", py: 2 }}>
                     <Box sx={{ fontSize: 40, mb: 1.5, opacity: 0.3 }}>✅</Box>
                     <Typography
                       color="text.secondary"
@@ -746,9 +928,12 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                 overflow: "hidden",
                 display: "flex",
                 flexDirection: "column",
-                //minHeight: isMobile ? "auto" : "30%",
+                ...(isMobile && {
+                  minHeight: "fit-content",
+                  overflow: "hidden",
+                }),
               }}
-              >
+            >
               <CardContent
                 sx={{
                   p: 2.5,
@@ -777,109 +962,201 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                       letterSpacing: "0.05em",
                     }}
                   >
-                    Activity
+                    My Activity
                   </Typography>
                   <Typography sx={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-                    6 month view
+                    {displayMonth?.name} {displayMonth?.year}
                   </Typography>
                 </Box>
 
-                {/* Monthly Bar Chart */}
+                {/* Monthly Bar Chart with Horizontal Scroll */}
                 <Box
+                  ref={activityScrollRef}
                   sx={{
-                    height: 170,
-                    borderRadius: 2,
-                    bgcolor: "#f9fafb",
-                    display: "flex",
-                    alignItems: "flex-end",
-                    justifyContent: "space-around",
-                    p: 1.5,
-                    gap: 1,
+                    overflowX: "auto",
                     mb: 1.5,
-                    flexShrink: 0,
+                    "&::-webkit-scrollbar": {
+                      height: 6,
+                    },
+                    "&::-webkit-scrollbar-track": {
+                      bgcolor: "#f3f4f6",
+                      borderRadius: 1,
+                    },
+                    "&::-webkit-scrollbar-thumb": {
+                      bgcolor: "#d1d5db",
+                      borderRadius: 1,
+                      "&:hover": {
+                        bgcolor: "#9ca3af",
+                      },
+                    },
                   }}
                 >
-                  {monthlyStats.map((month, index) => (
-                    <Box
-                      key={index}
-                      sx={{
-                        flex: 1,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 1,
-                      }}
-                    >
-                      {/* Stacked Bar Container */}
-                      <Box
-                        sx={{
-                          width: "100%",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          position: "relative",
-                        }}
-                      >
-                        {/* Total Events Bar (Background) */}
-                        <Box
-                          sx={{
-                            width: "90%",
-                            height:
-                              maxCount > 0
-                                ? `${(month.total / maxCount) * 100}px`
-                                : "4px",
-                            minHeight: "4px",
-                            bgcolor: month.total > 0 ? "#e0e7ff" : "#e5e7eb",
-                            borderRadius: 1,
-                            position: "relative",
-                            overflow: "hidden",
-                          }}
-                        >
-                          {/* Completed Events Bar (Foreground) */}
+                  <Box
+                    sx={{
+                      height: 170,
+                      borderRadius: 2,
+                      bgcolor: "#f9fafb",
+                      display: "flex",
+                      alignItems: "flex-end",
+                      justifyContent: "flex-start",
+                      p: 1.5,
+                      gap: 1,
+                      minWidth: "max-content",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {monthlyStats.map((month, index) => (
+                      <React.Fragment key={index}>
+                        {/* Year Label - show at the start of each year */}
+                        {month.isFirstMonthOfYear && (
                           <Box
                             sx={{
-                              position: "absolute",
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              height:
-                                month.total > 0
-                                  ? `${(month.completed / month.total) * 100}%`
-                                  : "0%",
-                              bgcolor: theme.palette.primary.main,
-                              borderRadius: 1,
-                              transition: "all 0.3s ease",
-                            }}
-                          />
-                        </Box>
-
-                        {/* Count Badge */}
-                        {month.total > 0 && (
-                          <Box
-                            sx={{
-                              position: "absolute",
-                              top: -20,
-                              fontSize: "0.688rem",
-                              fontWeight: 600,
-                              color: theme.palette.primary.main,
+                              minWidth: 50,
+                              display: "flex",
+                              alignItems: "flex-end",
+                              justifyContent: "center",
+                              pb: 1,
+                              mr: 1,
                             }}
                           >
-                            {month.completed}/{month.total}
+                            <Typography
+                              sx={{
+                                fontSize: "0.875rem",
+                                fontWeight: 700,
+                                color: theme.palette.primary.main,
+                                writingMode: "vertical-rl",
+                                transform: "rotate(180deg)",
+                              }}
+                            >
+                              {month.year}
+                            </Typography>
                           </Box>
                         )}
-                      </Box>
 
-                      <Typography
-                        sx={{
-                          fontSize: "0.688rem",
-                          color: "#9ca3af",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {month.name}
-                      </Typography>
-                    </Box>
-                  ))}
+                        <Box
+                          onClick={() => setSelectedMonthStats(month)}
+                          sx={{
+                            minWidth: 60,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 1,
+                            cursor: "pointer",
+                            "&:hover": {
+                              opacity: 0.8,
+                            },
+                          }}
+                        >
+                          {/* Stacked Bar Container */}
+                          <Box
+                            sx={{
+                              width: "100%",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              position: "relative",
+                            }}
+                          >
+                            {/* Total Events Bar (Background) */}
+                            <Box
+                              sx={{
+                                width: "90%",
+                                height:
+                                  maxCount > 0
+                                    ? `${(month.total / maxCount) * 100}px`
+                                    : "4px",
+                                minHeight: "4px",
+                                bgcolor:
+                                  month.total > 0 ? "#e5e7eb" : "#e5e7eb",
+                                borderRadius: 1,
+                                position: "relative",
+                                overflow: "hidden",
+                              }}
+                            >
+                              {/* Upcoming Events Bar (Green - Background) */}
+                              <Box
+                                sx={{
+                                  position: "absolute",
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  height:
+                                    month.total > 0
+                                      ? `${
+                                          ((month.completed + month.upcoming) /
+                                            month.total) *
+                                          100
+                                        }%`
+                                      : "0%",
+                                  bgcolor: "#10B981",
+                                  borderRadius: 1,
+                                  transition: "all 0.3s ease",
+                                }}
+                              />
+                              {/* Completed Events Bar (Blue - Foreground) */}
+                              <Box
+                                sx={{
+                                  position: "absolute",
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  height:
+                                    month.total > 0
+                                      ? `${
+                                          (month.completed / month.total) * 100
+                                        }%`
+                                      : "0%",
+                                  bgcolor: theme.palette.primary.main,
+                                  borderRadius: 1,
+                                  transition: "all 0.3s ease",
+                                  zIndex: 1,
+                                }}
+                              />
+                            </Box>
+
+                            {/* Count Badge */}
+                            {month.total > 0 && (
+                              <Box
+                                sx={{
+                                  position: "absolute",
+                                  top: -20,
+                                  fontSize: "0.688rem",
+                                  fontWeight: 600,
+                                  color: theme.palette.primary.main,
+                                }}
+                              >
+                                {month.completed + month.upcoming}/{month.total}
+                              </Box>
+                            )}
+                          </Box>
+
+                          <Typography
+                            sx={{
+                              fontSize: "0.688rem",
+                              color:
+                                displayMonth &&
+                                displayMonth.name === month.name &&
+                                displayMonth.year === month.year
+                                  ? theme.palette.primary.main
+                                  : month.isCurrentMonth
+                                  ? theme.palette.primary.main
+                                  : "#9ca3af",
+                              fontWeight:
+                                displayMonth &&
+                                displayMonth.name === month.name &&
+                                displayMonth.year === month.year
+                                  ? 700
+                                  : month.isCurrentMonth
+                                  ? 700
+                                  : 500,
+                            }}
+                          >
+                            {month.name}
+                          </Typography>
+                        </Box>
+                      </React.Fragment>
+                    ))}
+                  </Box>
                 </Box>
 
                 {/* Legend */}
@@ -910,12 +1187,12 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                       sx={{
                         width: 12,
                         height: 12,
-                        bgcolor: "#e0e7ff",
+                        bgcolor: "#10B981",
                         borderRadius: 0.5,
                       }}
                     />
                     <Typography sx={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                      Total Events
+                      Upcoming
                     </Typography>
                   </Box>
                 </Box>
@@ -938,12 +1215,16 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                         color: "#1f2937",
                       }}
                     >
-                      {pastEvents.length}
+                      {displayMonth
+                        ? `${displayMonth.completedDistance.toFixed(1)} km`
+                        : "0 km"}
                     </Typography>
                     <Typography
                       sx={{ fontSize: "0.75rem", color: "#9ca3af", mt: 0.5 }}
                     >
-                      Completed
+                      {
+                        /* selectedMonthStats ? `${selectedMonthStats.name} ${selectedMonthStats.year} Completed` :  */ "Completed"
+                      }
                     </Typography>
                   </Box>
                   <Box
@@ -962,12 +1243,16 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                         color: "#1f2937",
                       }}
                     >
-                      {myUpcomingEvents.length}
+                      {displayMonth
+                        ? `${displayMonth.upcomingDistance.toFixed(1)} km`
+                        : "0 km"}
                     </Typography>
                     <Typography
                       sx={{ fontSize: "0.75rem", color: "#9ca3af", mt: 0.5 }}
                     >
-                      Upcoming
+                      {
+                        /* selectedMonthStats ? `${selectedMonthStats.name} ${selectedMonthStats.year} Upcoming` :  */ "Upcoming"
+                      }
                     </Typography>
                   </Box>
                 </Box>
@@ -979,7 +1264,13 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
           <Grid
             item
             size={{ xs: 12, md: 3 }}
-            sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+            sx={{ height: "100%", display: "flex", flexDirection: "column", 
+              ...(isMobile && {
+                  //bgcolor: "blue",
+                  height: "fit-content",
+                  mt: 13,
+                  pb: 16,
+                }), }}
           >
             {/* Recent Activity Card */}
             <Card
@@ -1150,50 +1441,65 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                   >
                     {myCreatedEvents.slice(0, 2).map((event) => (
                       <Box
-                        key={event.id}
+                        key={`created-${event.id}`}
                         sx={{
-                          bgcolor: "rgba(255,255,255,0.15)",
+                          display: "flex",
+                          gap: 1.5,
+                          alignItems: "flex-start",
+                          bgcolor: "#f0f0ff",
                           p: 1.5,
                           borderRadius: 1.5,
-                          backdropFilter: "blur(10px)",
                         }}
                       >
                         <Box
                           sx={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            bgcolor: "#6366f1",
                             display: "flex",
-                            gap: 1.5,
-                            alignItems: "flex-start",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
                           }}
                         >
-                          <Box
+                          <Box sx={{ fontSize: 16, color: "white" }}>✨</Box>
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
                             sx={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: "50%",
-                              bgcolor: "rgba(255,255,255,0.25)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
+                              fontSize: "0.813rem",
+                              fontWeight: 600,
+                              color: "#1f2937",
+                              mb: 0.3,
                             }}
                           >
-                            <Box sx={{ fontSize: 14 }}>👤</Box>
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography
+                            You created an event
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              color: "#9ca3af",
+                              mb: 0.8,
+                            }}
+                          >
+                            {event.name}
+                          </Typography>
+                          <Box sx={{ display: "flex", gap: 1 }}>
+                            <Box
                               sx={{
-                                fontSize: "0.813rem",
-                                fontWeight: 600,
-                                mb: 0.3,
+                                px: 1.5,
+                                py: 0.5,
+                                bgcolor: "#6366f1",
+                                color: "white",
+                                borderRadius: 1,
+                                fontSize: "0.688rem",
+                                fontWeight: 500,
+                                cursor: "pointer",
                               }}
                             >
-                              {user.displayName || "You"}
-                            </Typography>
-                            <Typography
-                              sx={{ fontSize: "0.75rem", opacity: 0.9 }}
-                            >
-                              Created: {event.name}
-                            </Typography>
+                              Manage
+                            </Box>
                           </Box>
                         </Box>
                       </Box>

@@ -27,6 +27,7 @@ import {
   ChevronLeft,
   Logout,
   Group,
+  Search,
 } from "@mui/icons-material";
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -38,17 +39,22 @@ const getMenuItems = (userRole, isMobile = false) => {
     { path: "/profile", label: "Profile", icon: <Person /> },
   ];
 
-  const adminItems =
-    userRole?.role === "admin" || userRole?.role === "moderator"
-      ? [{ path: "/admin/members", label: "Club", icon: <Group /> }]
-      : [];
+  // Add Clubs item for users without a club
+  const clubItems = !userRole?.clubId
+    ? [{ path: "/clubs", label: "Clubs", icon: <Search /> }]
+    : [];
+
+  // Add Club item for all users with a club
+  const clubPageItems = userRole?.clubId
+    ? [{ path: "/admin/members", label: "Club", icon: <Group /> }]
+    : [];
 
   // Don't include logout in mobile bottom nav (it's in top bar)
   const logoutItem = isMobile
     ? []
     : [{ path: "/logout", label: "Logout", icon: <Logout /> }];
 
-  return [...baseItems, ...adminItems, ...logoutItem];
+  return [...baseItems, ...clubItems, ...clubPageItems, ...logoutItem];
 };
 
 function MainLayout({ children, onLogout, userRole }) {

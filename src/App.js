@@ -17,8 +17,8 @@ import Profile from "./components/Profile";
 import AddEvent from "./components/AddEvent";
 import EditEvent from "./components/EditEvent";
 import EventDetails from "./components/EventDetails";
-import AdminPanel from "./components/AdminPanel";
-import SetupAccount from "./components/SetupAccount";
+import ClubPanel from "./components/ClubPanel";
+import ClubBrowser from "./components/ClubBrowser";
 
 function App() {
   // Initialize Redux listeners
@@ -41,7 +41,7 @@ function App() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // Load user role
+  // Load user role and update when userProfile changes
   useEffect(() => {
     const loadUserRole = async () => {
       if (user) {
@@ -54,7 +54,7 @@ function App() {
     };
 
     loadUserRole();
-  }, [user]);
+  }, [user, userProfile]);
 
   const handleEventClick = (event) => {
     setSelectedEvent(event);
@@ -113,7 +113,6 @@ function App() {
         <CssBaseline />
         <BrowserRouter>
           <Routes>
-            <Route path="/setup-account" element={<SetupAccount />} />
             <Route path="*" element={<Auth onClose={null} />} />
           </Routes>
         </BrowserRouter>
@@ -127,41 +126,59 @@ function App() {
       <BrowserRouter>
         <MainLayout onLogout={handleLogout} userRole={userRole}>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route 
+              path="/" 
+              element={
+                <Navigate to={!userRole?.clubId ? "/clubs" : "/dashboard"} replace />
+              } 
+            />
             <Route
               path="/dashboard"
               element={
-                <Dashboard
-                  user={user}
-                  userProfile={userProfile}
-                  onEventClick={handleEventClick}
-                  onAddEvent={handleAddEvent}
-                />
+                userRole?.clubId ? (
+                  <Dashboard
+                    user={user}
+                    userProfile={userProfile}
+                    onEventClick={handleEventClick}
+                    onAddEvent={handleAddEvent}
+                  />
+                ) : (
+                  <Navigate to="/clubs" replace />
+                )
               }
             />
             <Route
               path="/calendar"
               element={
-                <EventCalendar
-                  onEventClick={handleEventClick}
-                  user={user}
-                  onAddEvent={handleAddEvent}
-                />
+                userRole?.clubId ? (
+                  <EventCalendar
+                    onEventClick={handleEventClick}
+                    user={user}
+                    onAddEvent={handleAddEvent}
+                  />
+                ) : (
+                  <Navigate to="/clubs" replace />
+                )
               }
             />
             <Route path="/profile" element={<Profile user={user} />} />
             
-            {/* Admin Routes */}
-            {(userRole?.role === 'admin' || userRole?.role === 'moderator') && (
+            {/* Club Browser for users without a club */}
+            {!userRole?.clubId && (
+              <Route path="/clubs" element={<ClubBrowser />} />
+            )}
+            
+            {/* Club/Admin Panel for all members with a club */}
+            {userRole?.clubId && (
               <Route
                 path="/admin/members"
                 element={
-                  <AdminPanel user={user} clubId={userRole?.clubId} userRole={userRole?.role} />
+                  <ClubPanel user={user} clubId={userRole?.clubId} userRole={userRole?.role} />
                 }
               />
             )}
             
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to={!userRole?.clubId ? "/clubs" : "/dashboard"} replace />} />
           </Routes>
         </MainLayout>
 

@@ -4,7 +4,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithPopup,
   signOut as firebaseSignOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -90,4 +91,21 @@ export const signOut = async () => {
 // Subscribe to auth state changes
 export const subscribeToAuthState = (callback) => {
   return onAuthStateChanged(auth, callback);
+};
+
+// Send password reset email
+export const resetPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    let errorMessage = 'Failed to send password reset email';
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = 'No account found with this email';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Invalid email address';
+    }
+    return { success: false, error: errorMessage };
+  }
 };

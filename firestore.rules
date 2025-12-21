@@ -52,25 +52,31 @@ service cloud.firestore {
                         || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
     
-    // Invitations collection
-    match /invitations/{invitationId} {
-      // Allow unauthenticated read for invitation verification (account setup)
-      // Users need to verify invitations before they have an account
-      allow read: if true;
-      
-      // Only authenticated admins/moderators can create invitations
+    // Join Requests collection
+    match /joinRequests/{requestId} {
+      // Users can create join requests for themselves
       allow create: if request.auth != null 
-                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'moderator'];
+                    && request.resource.data.userId == request.auth.uid;
       
-      // Only authenticated admins/moderators can update/delete invitations
-      allow update, delete: if request.auth != null 
-                          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'moderator'];
+      // Users can read their own join requests
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      
+      // Admins and moderators can read join requests for their club
+      allow read: if request.auth != null 
+                  && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'moderator']
+                  && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubId == resource.data.clubId;
+      
+      // Admins and moderators can update join requests for their club (approve/reject)
+      allow update: if request.auth != null 
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'moderator']
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubId == resource.data.clubId;
     }
     
     // Clubs collection
     match /clubs/{clubId} {
-      // Anyone can read club information
-      allow read: if true;
+      // Anyone authenticated can read club information (for browsing/searching)
+      allow read: if request.auth != null;
       
       // Only authenticated admins can create/update clubs
       allow create, update: if request.auth != null 

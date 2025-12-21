@@ -546,7 +546,7 @@ function Profile({ user }) {
                           Club
                         </Typography>
                         <Typography variant="body1" fontWeight={500}>
-                          {profile.clubName} - {profile.role}
+                          {profile.clubName}
                         </Typography>
                       </Box>
                     </Box>

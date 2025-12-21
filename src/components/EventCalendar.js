@@ -33,7 +33,6 @@ import {
 import {
   responsiveSpacing,
   responsiveSizing,
-  componentStyles,
 } from "../utils/responsive";
 
 function EventCalendar({ onEventClick, user, onAddEvent }) {
@@ -249,8 +248,17 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
   };
 
   const renderListView = () => {
-    const upcomingEvents = events.filter((event) => event.date >= new Date());
-    const pastEvents = events
+    const { year, month } = getDaysInMonth(currentMonth);
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+    
+    // Filter events for the selected month
+    const monthEvents = events.filter((event) => {
+      return event.date >= monthStart && event.date <= monthEnd;
+    });
+    
+    const upcomingEvents = monthEvents.filter((event) => event.date >= new Date());
+    const pastEvents = monthEvents
       .filter((event) => event.date < new Date())
       .reverse();
 
@@ -741,6 +749,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                   onClick={() => {
                     const newDate = new Date(currentMonth);
                     newDate.setFullYear(newDate.getFullYear() - 1);
+                    newDate.setMonth(0); // Set to January when changing to previous year
                     setCurrentMonth(newDate);
                     dispatch(
                       setSelectedMonth({
@@ -763,6 +772,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                   onClick={() => {
                     const newDate = new Date(currentMonth);
                     newDate.setFullYear(newDate.getFullYear() + 1);
+                    newDate.setMonth(0); // Set to January when changing to next year
                     setCurrentMonth(newDate);
                     dispatch(
                       setSelectedMonth({

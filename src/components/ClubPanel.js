@@ -46,56 +46,57 @@ import {
   Business,
   PhotoCamera,
 } from "@mui/icons-material";
+import { getClubMembers, updateMemberRole, removeMember } from "../services";
 import {
-  getClubMembers,
-  updateMemberRole,
-  removeMember,
-} from "../services";
-import { getClubDetails, getClubJoinRequests, approveJoinRequest, rejectJoinRequest } from "../services/clubService";
+  getClubDetails,
+  getClubJoinRequests,
+  approveJoinRequest,
+  rejectJoinRequest,
+} from "../services/clubService";
 import { responsiveSpacing } from "../utils/responsive";
 
-function AdminPanel({ user, clubId, userRole }) {
+function ClubPanel({ user, clubId, userRole }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  
+
   // Permission helpers
-  const isAdmin = userRole === 'admin';
-  const isModerator = userRole === 'moderator';
-  
+  const isAdmin = userRole === "admin";
+  const isModerator = userRole === "moderator";
+
   // Check if current user can edit a member
   const canEditMember = (member) => {
     if (member.uid === user.uid) return false; // Can't edit self
     if (isAdmin) return true; // Admins can edit anyone
     if (isModerator) {
       // Moderators can only edit regular members, not admins or other moderators
-      return member.role === 'member';
+      return member.role === "member";
     }
     return false;
   };
-  
+
   // Check if current user can remove a member
   const canRemoveMember = (member) => {
     if (member.uid === user.uid) return false; // Can't remove self
     if (isAdmin) return true; // Admins can remove anyone
     if (isModerator) {
       // Moderators can only remove regular members
-      return member.role === 'member';
+      return member.role === "member";
     }
     return false;
   };
-  
+
   // Get available roles for editing
   const getEditableRoles = (member) => {
     if (isAdmin) {
-      return ['member', 'moderator', 'admin'];
+      return ["member", "moderator", "admin"];
     }
     if (isModerator) {
       // Moderators can only change between member and moderator
-      return ['member', 'moderator'];
+      return ["member", "moderator"];
     }
-    return ['member'];
+    return ["member"];
   };
-  
+
   const [activeTab, setActiveTab] = useState(0);
   const [members, setMembers] = useState([]);
   const [joinRequests, setJoinRequests] = useState([]);
@@ -127,20 +128,17 @@ function AdminPanel({ user, clubId, userRole }) {
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     try {
       // Load members and club details for all users
-      const dataPromises = [
-        getClubMembers(clubId),
-        getClubDetails(clubId),
-      ];
-      
+      const dataPromises = [getClubMembers(clubId), getClubDetails(clubId)];
+
       // Only load join requests for admins and moderators
       if (isAdmin || isModerator) {
         dataPromises.push(getClubJoinRequests(clubId));
       }
-      
+
       const results = await Promise.all(dataPromises);
       const [membersResult, clubResult, joinRequestsData] = results;
 
@@ -179,9 +177,9 @@ function AdminPanel({ user, clubId, userRole }) {
 
   const handleUpdateRole = async () => {
     if (!selectedMember) return;
-    
+
     // Check if moderator is trying to set admin role
-    if (isModerator && selectedMember.role === 'admin') {
+    if (isModerator && selectedMember.role === "admin") {
       showAlert("error", "Moderators cannot assign admin role");
       return;
     }
@@ -202,13 +200,13 @@ function AdminPanel({ user, clubId, userRole }) {
   };
 
   const handleRemoveMember = async (memberId) => {
-    const member = members.find(m => m.id === memberId);
-    
+    const member = members.find((m) => m.id === memberId);
+
     if (!canRemoveMember(member)) {
       showAlert("error", "You don't have permission to remove this member");
       return;
     }
-    
+
     if (!window.confirm("Are you sure you want to remove this member?")) {
       return;
     }
@@ -252,10 +250,10 @@ function AdminPanel({ user, clubId, userRole }) {
     }
 
     try {
-      const { db } = await import('../firebase');
-      const { doc, updateDoc } = await import('firebase/firestore');
-      
-      const clubRef = doc(db, 'clubs', clubId);
+      const { db } = await import("../firebase");
+      const { doc, updateDoc } = await import("firebase/firestore");
+
+      const clubRef = doc(db, "clubs", clubId);
       await updateDoc(clubRef, {
         name: clubForm.name,
         description: clubForm.description,
@@ -296,7 +294,7 @@ function AdminPanel({ user, clubId, userRole }) {
     }
   };
 
-   return (
+  return (
     <Box
       sx={{
         display: "flex",
@@ -341,9 +339,11 @@ function AdminPanel({ user, clubId, userRole }) {
                   fontSize: { xs: "1.5rem", md: "2.125rem" },
                 }}
               >
-                Admin Panel
+                Club
               </Typography>
-              <Typography variant="body2">Manage your club...</Typography>
+              <Typography variant="body2">
+                View your club members and details
+              </Typography>
             </Box>
           </Box>
 
@@ -402,42 +402,44 @@ function AdminPanel({ user, clubId, userRole }) {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={6} md={3}>
-              <Card variant="outlined">
-                <CardContent sx={{ p: { xs: 1, md: 2 } }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: { xs: 1, md: 2 },
-                      flexDirection: "row",
-                    }}
-                  >
-                    <Email
-                      sx={{ fontSize: { xs: 32, md: 40 }, color: "#10B981" }}
-                    />
-                    <Box sx={{ textAlign: { xs: "center", sm: "left" } }}>
-                      <Typography
-                        variant="h4"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: { xs: "1.5rem", md: "2.125rem" },
-                        }}
-                      >
-                        {joinRequests.length}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ fontSize: { xs: "0.75rem", md: "0.875rem" } }}
-                      >
-                        Join Requests
-                      </Typography>
+            {isAdmin && (
+              <Grid item xs={6} md={3}>
+                <Card variant="outlined">
+                  <CardContent sx={{ p: { xs: 1, md: 2 } }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: { xs: 1, md: 2 },
+                        flexDirection: "row",
+                      }}
+                    >
+                      <Email
+                        sx={{ fontSize: { xs: 32, md: 40 }, color: "#10B981" }}
+                      />
+                      <Box sx={{ textAlign: { xs: "center", sm: "left" } }}>
+                        <Typography
+                          variant="h4"
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: { xs: "1.5rem", md: "2.125rem" },
+                          }}
+                        >
+                          {joinRequests.length}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontSize: { xs: "0.75rem", md: "0.875rem" } }}
+                        >
+                          Join Requests
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
           </Grid>
         </Box>
 
@@ -470,7 +472,11 @@ function AdminPanel({ user, clubId, userRole }) {
             />
             <Tab label="Members" icon={<Group />} iconPosition="start" />
             {(isAdmin || isModerator) && (
-              <Tab label="Join Requests" icon={<Email />} iconPosition="start" />
+              <Tab
+                label="Join Requests"
+                icon={<Email />}
+                iconPosition="start"
+              />
             )}
           </Tabs>
         </Box>
@@ -494,11 +500,7 @@ function AdminPanel({ user, clubId, userRole }) {
             {/* Club Details Tab */}
             {activeTab === 0 && (
               <Box>
-                {!isAdmin ? (
-                  <Alert severity="warning">
-                    Only admins can modify club details
-                  </Alert>
-                ) : clubEditMode ? (
+                {clubEditMode ? (
                   <Box>
                     <Grid container spacing={3}>
                       {/* Club Image */}
@@ -636,30 +638,32 @@ function AdminPanel({ user, clubId, userRole }) {
                   </Box>
                 ) : (
                   <Box>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Button
-                        variant="contained"
-                        startIcon={<Edit />}
-                        onClick={() => setClubEditMode(true)}
+                    {isAdmin && (
+                      <Box
                         sx={{
-                          position: "absolute",
-                          mt: isMobile ? 3 : -9,
-                          bgcolor: "#6366f1",
-                          "&:hover": { bgcolor: "#4F46E5" },
-                          ...(isMobile && {
-                            bottom: 80,
-                          }),
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          alignItems: "center",
                         }}
                       >
-                        Edit Club
-                      </Button>
-                    </Box>
+                        <Button
+                          variant="contained"
+                          startIcon={<Edit />}
+                          onClick={() => setClubEditMode(true)}
+                          sx={{
+                            position: "absolute",
+                            mt: isMobile ? 3 : -9,
+                            bgcolor: "#6366f1",
+                            "&:hover": { bgcolor: "#4F46E5" },
+                            ...(isMobile && {
+                              bottom: 80,
+                            }),
+                          }}
+                        >
+                          Edit Club
+                        </Button>
+                      </Box>
+                    )}
                     <Typography variant="h6">Club Information</Typography>
                     <Grid container spacing={3}>
                       {/* Club Image */}
@@ -772,42 +776,74 @@ function AdminPanel({ user, clubId, userRole }) {
             )}
 
             {/* Members Tab */}
-              {activeTab === 1 && (
-                <>
-                  {isMobile ? (
-                    /* Mobile View - Card List */
-                    <Box>
-                      {members.length === 0 ? (
-                        <Box sx={{ textAlign: "center", py: 6 }}>
-                          <Group sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
-                          <Typography variant="body1" color="text.secondary">
-                            No members yet. Invite your first member!
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <List sx={{ p: 0 }}>
-                          {members.map((member, index) => (
-                            <Fragment key={member.id}>
-                              {index > 0 && <Divider />}
-                              <ListItem
-                                sx={{ 
-                                  px: 0, 
-                                  py: 2,
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "stretch"
-                                }}
-                              >
-                                <Box sx={{ width: "100%", mb: 1 }}>
-                                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
-                                    <Box>
-                                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            {activeTab === 1 && (
+              <>
+                {isMobile ? (
+                  /* Mobile View - Card List */
+                  <Box>
+                    {members.length === 0 ? (
+                      <Box sx={{ textAlign: "center", py: 6 }}>
+                        <Group
+                          sx={{ fontSize: 64, color: "text.secondary", mb: 2 }}
+                        />
+                        <Typography variant="body1" color="text.secondary">
+                          No members yet. Invite your first member!
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <List sx={{ p: 0 }}>
+                        {members.map((member, index) => (
+                          <Fragment key={member.id}>
+                            {index > 0 && <Divider />}
+                            <ListItem
+                              sx={{
+                                px: 0,
+                                py: 2,
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "stretch",
+                              }}
+                            >
+                              <Box sx={{ width: "100%", mb: 1 }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "flex-start",
+                                    //mb: 1,
+                                  }}
+                                >
+                                  <Box>
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 1,
+                                      }}
+                                    >
+                                      <Typography
+                                        variant="subtitle1"
+                                        sx={{ fontWeight: 600 }}
+                                      >
                                         {member.displayName}
                                       </Typography>
-                                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.875rem" }}>
+                                      <Chip
+                                        label={member.role}
+                                        size="small"
+                                        color={getRoleColor(member.role)}
+                                      />
+                                    </Box>
+                                    {isAdmin && (
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{ fontSize: "0.875rem" }}
+                                      >
                                         {member.email}
                                       </Typography>
-                                    </Box>
+                                    )}
+                                  </Box>
+                                  {isAdmin && (
                                     <Box sx={{ display: "flex", gap: 0.5 }}>
                                       <IconButton
                                         size="small"
@@ -821,255 +857,351 @@ function AdminPanel({ user, clubId, userRole }) {
                                       </IconButton>
                                       <IconButton
                                         size="small"
-                                        onClick={() => handleRemoveMember(member.id)}
+                                        onClick={() =>
+                                          handleRemoveMember(member.id)
+                                        }
                                         disabled={!canRemoveMember(member)}
                                         color="error"
                                       >
                                         <Delete fontSize="small" />
                                       </IconButton>
                                     </Box>
-                                  </Box>
-                                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                                    <Chip
-                                      label={member.role}
-                                      size="small"
-                                      color={getRoleColor(member.role)}
-                                    />
-                                    <Chip
-                                      label={member.status || "active"}
-                                      size="small"
-                                      color={member.status === "active" ? "success" : "default"}
-                                    />
-                                    <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center" }}>
-                                      Joined: {member.createdAt
-                                        ? new Date(member.createdAt.seconds * 1000).toLocaleDateString()
-                                        : "N/A"}
-                                    </Typography>
-                                  </Box>
+                                  )}
                                 </Box>
-                              </ListItem>
-                            </Fragment>
-                          ))}
-                        </List>
-                      )}
-                    </Box>
-                  ) : (
-                    /* Desktop View - Table */
-                    <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Email</TableCell>
-                        <TableCell>Role</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Joined</TableCell>
-                        <TableCell align="right">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {members.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center">
-                            <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                              No members yet. Invite your first member!
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        members.map((member) => (
-                          <TableRow key={member.id} hover>
-                            <TableCell>{member.displayName}</TableCell>
-                            <TableCell>{member.email}</TableCell>
-                            <TableCell>
-                              <Chip
-                                label={member.role}
-                                size="small"
-                                color={getRoleColor(member.role)}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={member.status || "active"}
-                                size="small"
-                                color={member.status === "active" ? "success" : "default"}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {member.createdAt
-                                ? new Date(member.createdAt.seconds * 1000).toLocaleDateString()
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Tooltip title={canEditMember(member) ? "Edit Role" : "No permission"}>
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => {
-                                      setSelectedMember(member);
-                                      setEditDialogOpen(true);
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    gap: 1,
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
                                     }}
-                                    disabled={!canEditMember(member)}
                                   >
-                                    <Edit fontSize="small" />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                              <Tooltip title={canRemoveMember(member) ? "Remove Member" : "No permission"}>
-                                <span>
-                                  <IconButton
+                                    Joined:{" "}
+                                    {member.createdAt
+                                      ? new Date(
+                                          member.createdAt.seconds * 1000
+                                        ).toLocaleDateString()
+                                      : "N/A"}
+                                  </Typography>
+                                  {/* <Chip
+                                    label={member.role}
                                     size="small"
-                                    onClick={() => handleRemoveMember(member.id)}
-                                    disabled={!canRemoveMember(member)}
-                                    color="error"
-                                  >
-                                    <Delete fontSize="small" />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
+                                    color={getRoleColor(member.role)}
+                                  /> */}
+                                  {/* <Chip
+                                    label={member.status || "active"}
+                                    size="small"
+                                    color={
+                                      member.status === "active"
+                                        ? "success"
+                                        : "default"
+                                    }
+                                  /> */}
+                                </Box>
+                              </Box>
+                            </ListItem>
+                          </Fragment>
+                        ))}
+                      </List>
+                    )}
+                  </Box>
+                ) : (
+                  /* Desktop View - Table */
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Name</TableCell>
+                          <TableCell>Email</TableCell>
+                          <TableCell>Role</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>Joined</TableCell>
+                          <TableCell align="right">Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {members.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} align="center">
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ py: 4 }}
+                              >
+                                No members yet. Invite your first member!
+                              </Typography>
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                  )}
-                </>
-              )}
-
-            {/* Join Requests Tab */}
-              {activeTab === 2 && (
-                <>
-                  {isMobile ? (
-                    /* Mobile View - Card List */
-                    <Box>
-                      {joinRequests.length === 0 ? (
-                        <Box sx={{ textAlign: "center", py: 6 }}>
-                          <Email sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
-                          <Typography variant="body1" color="text.secondary">
-                            No pending join requests
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <List sx={{ p: 0 }}>
-                          {joinRequests.map((request, index) => (
-                            <Fragment key={request.id}>
-                              {index > 0 && <Divider />}
-                              <ListItem
-                                sx={{ 
-                                  px: 0, 
-                                  py: 2,
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "stretch"
-                                }}
-                              >
-                                <Box sx={{ width: "100%", mb: 1 }}>
-                                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
-                                    <Box>
-                                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                        {request.userName}
-                                      </Typography>
-                                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.875rem" }}>
-                                        {request.userEmail}
-                                      </Typography>
-                                    </Box>
-                                    <Box sx={{ display: "flex", gap: 0.5 }}>
-                                      <Tooltip title="Approve">
-                                        <IconButton
-                                          size="small"
-                                          onClick={() => handleApproveJoinRequest(request.id, request.userId)}
-                                          color="success"
-                                        >
-                                          <Check fontSize="small" />
-                                        </IconButton>
-                                      </Tooltip>
-                                      <Tooltip title="Reject">
-                                        <IconButton
-                                          size="small"
-                                          onClick={() => handleRejectJoinRequest(request.id)}
-                                          color="error"
-                                        >
-                                          <Close fontSize="small" />
-                                        </IconButton>
-                                      </Tooltip>
-                                    </Box>
-                                  </Box>
-                                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                      Requested: {request.createdAt
-                                        ? new Date(request.createdAt.seconds * 1000).toLocaleDateString()
-                                        : "N/A"}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </ListItem>
-                            </Fragment>
-                          ))}
-                        </List>
-                      )}
-                    </Box>
-                  ) : (
-                    /* Desktop View - Table */
-                    <TableContainer>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Name</TableCell>
-                            <TableCell>Email</TableCell>
-                            <TableCell>Requested</TableCell>
-                            <TableCell align="right">Actions</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {joinRequests.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={4} align="center">
-                                <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                                  No pending join requests
-                                </Typography>
+                        ) : (
+                          members.map((member) => (
+                            <TableRow key={member.id} hover>
+                              <TableCell>{member.displayName}</TableCell>
+                              <TableCell>{member.email}</TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={member.role}
+                                  size="small"
+                                  color={getRoleColor(member.role)}
+                                />
                               </TableCell>
-                            </TableRow>
-                          ) : (
-                            joinRequests.map((request) => (
-                              <TableRow key={request.id} hover>
-                                <TableCell>{request.userName}</TableCell>
-                                <TableCell>{request.userEmail}</TableCell>
-                                <TableCell>
-                                  {request.createdAt
-                                    ? new Date(request.createdAt.seconds * 1000).toLocaleDateString()
-                                    : "N/A"}
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Tooltip title="Approve">
+                              <TableCell>
+                                <Chip
+                                  label={member.status || "active"}
+                                  size="small"
+                                  color={
+                                    member.status === "active"
+                                      ? "success"
+                                      : "default"
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell>
+                                {member.createdAt
+                                  ? new Date(
+                                      member.createdAt.seconds * 1000
+                                    ).toLocaleDateString()
+                                  : "N/A"}
+                              </TableCell>
+                              <TableCell align="right">
+                                <Tooltip
+                                  title={
+                                    canEditMember(member)
+                                      ? "Edit Role"
+                                      : "No permission"
+                                  }
+                                >
+                                  <span>
                                     <IconButton
                                       size="small"
-                                      onClick={() => handleApproveJoinRequest(request.id, request.userId)}
-                                      color="success"
+                                      onClick={() => {
+                                        setSelectedMember(member);
+                                        setEditDialogOpen(true);
+                                      }}
+                                      disabled={!canEditMember(member)}
                                     >
-                                      <Check fontSize="small" />
+                                      <Edit fontSize="small" />
                                     </IconButton>
-                                  </Tooltip>
-                                  <Tooltip title="Reject">
+                                  </span>
+                                </Tooltip>
+                                <Tooltip
+                                  title={
+                                    canRemoveMember(member)
+                                      ? "Remove Member"
+                                      : "No permission"
+                                  }
+                                >
+                                  <span>
                                     <IconButton
                                       size="small"
-                                      onClick={() => handleRejectJoinRequest(request.id)}
+                                      onClick={() =>
+                                        handleRemoveMember(member.id)
+                                      }
+                                      disabled={!canRemoveMember(member)}
                                       color="error"
                                     >
-                                      <Close fontSize="small" />
+                                      <Delete fontSize="small" />
                                     </IconButton>
-                                  </Tooltip>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  )}
-                </>
-              )}
+                                  </span>
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </>
+            )}
+
+            {/* Join Requests Tab - Only for admins and moderators */}
+            {activeTab === 2 && (isAdmin || isModerator) && (
+              <>
+                {isMobile ? (
+                  /* Mobile View - Card List */
+                  <Box>
+                    {joinRequests.length === 0 ? (
+                      <Box sx={{ textAlign: "center", py: 6 }}>
+                        <Email
+                          sx={{ fontSize: 64, color: "text.secondary", mb: 2 }}
+                        />
+                        <Typography variant="body1" color="text.secondary">
+                          No pending join requests
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <List sx={{ p: 0 }}>
+                        {joinRequests.map((request, index) => (
+                          <Fragment key={request.id}>
+                            {index > 0 && <Divider />}
+                            <ListItem
+                              sx={{
+                                px: 0,
+                                py: 2,
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "stretch",
+                              }}
+                            >
+                              <Box sx={{ width: "100%", mb: 1 }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "flex-start",
+                                    mb: 1,
+                                  }}
+                                >
+                                  <Box>
+                                    <Typography
+                                      variant="subtitle1"
+                                      sx={{ fontWeight: 600 }}
+                                    >
+                                      {request.userName}
+                                    </Typography>
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                      sx={{ fontSize: "0.875rem" }}
+                                    >
+                                      {request.userEmail}
+                                    </Typography>
+                                  </Box>
+                                  <Box sx={{ display: "flex", gap: 0.5 }}>
+                                    <Tooltip title="Approve">
+                                      <IconButton
+                                        size="small"
+                                        onClick={() =>
+                                          handleApproveJoinRequest(
+                                            request.id,
+                                            request.userId
+                                          )
+                                        }
+                                        color="success"
+                                      >
+                                        <Check fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Reject">
+                                      <IconButton
+                                        size="small"
+                                        onClick={() =>
+                                          handleRejectJoinRequest(request.id)
+                                        }
+                                        color="error"
+                                      >
+                                        <Close fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Box>
+                                </Box>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    gap: 1,
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    Requested:{" "}
+                                    {request.createdAt
+                                      ? new Date(
+                                          request.createdAt.seconds * 1000
+                                        ).toLocaleDateString()
+                                      : "N/A"}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </ListItem>
+                          </Fragment>
+                        ))}
+                      </List>
+                    )}
+                  </Box>
+                ) : (
+                  /* Desktop View - Table */
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Name</TableCell>
+                          <TableCell>Email</TableCell>
+                          <TableCell>Requested</TableCell>
+                          <TableCell align="right">Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {joinRequests.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4} align="center">
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ py: 4 }}
+                              >
+                                No pending join requests
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          joinRequests.map((request) => (
+                            <TableRow key={request.id} hover>
+                              <TableCell>{request.userName}</TableCell>
+                              <TableCell>{request.userEmail}</TableCell>
+                              <TableCell>
+                                {request.createdAt
+                                  ? new Date(
+                                      request.createdAt.seconds * 1000
+                                    ).toLocaleDateString()
+                                  : "N/A"}
+                              </TableCell>
+                              <TableCell align="right">
+                                <Tooltip title="Approve">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() =>
+                                      handleApproveJoinRequest(
+                                        request.id,
+                                        request.userId
+                                      )
+                                    }
+                                    color="success"
+                                  >
+                                    <Check fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Reject">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() =>
+                                      handleRejectJoinRequest(request.id)
+                                    }
+                                    color="error"
+                                  >
+                                    <Close fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </>
+            )}
           </>
         )}
       </Box>
@@ -1139,4 +1271,4 @@ function AdminPanel({ user, clubId, userRole }) {
   );
 }
 
-export default AdminPanel;
+export default ClubPanel;
