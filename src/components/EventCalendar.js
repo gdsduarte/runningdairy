@@ -30,10 +30,7 @@ import {
   Close,
   Repeat,
 } from "@mui/icons-material";
-import {
-  responsiveSpacing,
-  responsiveSizing,
-} from "../utils/responsive";
+import { responsiveSpacing, responsiveSizing } from "../utils/responsive";
 
 function EventCalendar({ onEventClick, user, onAddEvent }) {
   const dispatch = useDispatch();
@@ -45,6 +42,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
   const loading = useSelector((state) => state.events.loading);
   const selectedYear = useSelector((state) => state.events.selectedYear);
   const selectedMonth = useSelector((state) => state.events.selectedMonth);
+  const userProfile = useSelector((state) => state.user.profile);
 
   const [currentMonth, setCurrentMonth] = useState(
     new Date(selectedYear, selectedMonth)
@@ -251,19 +249,27 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
     const { year, month } = getDaysInMonth(currentMonth);
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
-    
+
     // Filter events for the selected month
     const monthEvents = events.filter((event) => {
       return event.date >= monthStart && event.date <= monthEnd;
     });
-    
-    const upcomingEvents = monthEvents.filter((event) => event.date >= new Date());
+
+    const upcomingEvents = monthEvents.filter(
+      (event) => event.date >= new Date()
+    );
     const pastEvents = monthEvents
       .filter((event) => event.date < new Date())
       .reverse();
 
     return (
-      <Box sx={{ py: 2 }}>
+      <Box
+        sx={{
+          py: 2,
+          px: 2,
+          //bgcolor: "green",
+        }}
+      >
         {upcomingEvents.length > 0 && (
           <Box sx={{ mb: 4 }}>
             <Typography variant="h3" sx={{ mb: 2 }}>
@@ -502,7 +508,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
           </Box>
 
           {/* Create Event Button */}
-          {user && (
+          {user && userProfile?.clubId && (
             <Button
               variant="contained"
               fullWidth
@@ -976,6 +982,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               {mobileSelectedDay?.day}
             </Typography>
             {user &&
+              userProfile?.clubId &&
               !isPastDate(mobileSelectedDay?.day) &&
               mobileSelectedDay?.events.length > 0 && (
                 <Button
@@ -1059,19 +1066,21 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               <Typography color="text.secondary" gutterBottom>
                 No events scheduled for this day
               </Typography>
-              {user && !isPastDate(mobileSelectedDay?.day) && (
-                <Button
-                  variant="contained"
-                  startIcon={<Add />}
-                  onClick={() => {
-                    setShowDayEvents(false);
-                    onAddEvent(getSelectedDate(mobileSelectedDay.day));
-                  }}
-                  sx={{ mt: 2 }}
-                >
-                  Create an Event
-                </Button>
-              )}
+              {user &&
+                userProfile?.clubId &&
+                !isPastDate(mobileSelectedDay?.day) && (
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={() => {
+                      setShowDayEvents(false);
+                      onAddEvent(getSelectedDate(mobileSelectedDay.day));
+                    }}
+                    sx={{ mt: 2 }}
+                  >
+                    Create an Event
+                  </Button>
+                )}
               {user && isPastDate(mobileSelectedDay?.day) && (
                 <Typography color="error" variant="body2" sx={{ mt: 2 }}>
                   Cannot add event to a past date

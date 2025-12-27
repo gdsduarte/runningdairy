@@ -11,17 +11,25 @@ import {
   Alert,
   InputAdornment,
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   Chip,
   Grid,
 } from "@mui/material";
-import { Search, LocationOn, People, DirectionsRun } from "@mui/icons-material";
+import {
+  Search,
+  LocationOn,
+  People,
+  DirectionsRun,
+  HourglassEmpty,
+} from "@mui/icons-material";
 import { useSelector } from "react-redux";
-import { searchClubs, requestToJoinClub, getJoinRequests } from "../services/clubService";
+import {
+  searchClubs,
+  requestToJoinClub,
+  getJoinRequests,
+} from "../services/clubService";
 import { useTheme, useMediaQuery } from "@mui/material";
-import { responsiveSpacing } from "../utils/responsive";
 
 const ClubBrowser = () => {
   const theme = useTheme();
@@ -109,139 +117,290 @@ const ClubBrowser = () => {
   return (
     <Box
       sx={{
-        width: "100%",
-        maxWidth: isMobile ? "100%" : 1200,
+        display: "flex",
+        width: isMobile ? "100%" : "80%",
+        height: isMobile ? "calc(100vh - 110px)" : "calc(100vh - 64px)",
+        bgcolor: "background.paper",
+        flexDirection: "column",
+        overflow: "hidden",
+        boxShadow: isMobile ? "none" : 3,
         mx: "auto",
-        p: responsiveSpacing.pageContainer,
+        my: isMobile ? 0 : 4,
       }}
     >
-      <Box sx={{ mb: responsiveSpacing.sectionGap }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-          <DirectionsRun sx={{ fontSize: 40, color: theme.palette.primary.main, mr: 1 }} />
-          <Typography variant="h4" component="h1">
-            Find Your Running Club
-          </Typography>
-        </Box>
-        <Typography variant="body1" color="text.secondary">
-          Search for running clubs in your area and request to join
-        </Typography>
-      </Box>
-
-      <Box
-        component="form"
-        onSubmit={handleSearch}
-        sx={{ mb: responsiveSpacing.sectionGap }}
-      >
-        <TextField
-          fullWidth
-          placeholder="Search by club name or location..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search />
-              </InputAdornment>
-            ),
-          }}
+      {/* Desktop Card Container */}
+      <Box sx={{ flexShrink: 0 }}>
+        {/* Header Section */}
+        <Box
           sx={{
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 2,
-            },
+            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+            color: "white",
+            p: isMobile ? 2.5 : 4,
+            textAlign: isMobile ? "left" : "center",
           }}
-        />
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-          <CircularProgress />
-        </Box>
-      ) : clubs.length === 0 ? (
-        <Box sx={{ textAlign: "center", py: 8 }}>
-          <Typography variant="h6" color="text.secondary">
-            No clubs found
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: isMobile ? "flex-start" : "center",
+              mb: 1,
+            }}
+          >
+            <DirectionsRun sx={{ fontSize: isMobile ? 32 : 40, mr: 1.5 }} />
+            <Typography
+              variant={isMobile ? "h5" : "h4"}
+              component="h1"
+              fontWeight="600"
+            >
+              Find Your Running Club
+            </Typography>
+          </Box>
+          <Typography
+            variant={isMobile ? "body2" : "body1"}
+            sx={{ opacity: 0.95 }}
+          >
+            Search for running clubs in your area and request to join
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Try a different search term
-          </Typography>
         </Box>
-      ) : (
-        <Grid container spacing={isMobile ? 2 : 3}>
-          {clubs.map((club) => (
-            <Grid item xs={12} sm={6} md={4} key={club.id}>
-              <Card
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  transition: "transform 0.2s, box-shadow 0.2s",
-                  "&:hover": {
-                    transform: "translateY(-4px)",
-                    boxShadow: theme.shadows[4],
-                  },
-                }}
+
+        {/* Content Section */}
+        <CardContent sx={{ p: isMobile ? 2 : 4 }}>
+          {/* Search Box */}
+          <Box component="form" onSubmit={handleSearch} sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              placeholder="Search by club name or location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 1,
+                  bgcolor: "background.paper",
+                },
+              }}
+            />
+          </Box>
+
+          {/* Error Alert */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+
+          {/* Loading State */}
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : clubs.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 8 }}>
+              <DirectionsRun
+                sx={{ fontSize: 64, color: "text.disabled", mb: 2 }}
+              />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No clubs found
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Try a different search term or be the first to create a club
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              {/* Results Count */}
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Found {clubs.length} {clubs.length === 1 ? "club" : "clubs"}
+              </Typography>
+
+              {/* Club Cards Grid */}
+              <Grid
+                container
+                spacing={isMobile ? 2 : 3}
+                sx={{ display: "flex", justifyContent: isMobile ? "center" : "flex-start" }}
               >
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography variant="h6" gutterBottom>
-                    {club.name}
-                  </Typography>
+                {clubs.map((club) => (
+                  <Grid item xs={12} sm={6} md={4} key={club.id}>
+                    <Card
+                      elevation={2}
+                      sx={{
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        transition: "all 0.3s ease",
+                        cursor: "pointer",
+                        position: "relative",
+                        overflow: "hidden",
+                        "&:hover": {
+                          transform: "translateY(-8px)",
+                          boxShadow: 6,
+                          "& .club-badge": {
+                            transform: "rotate(15deg) scale(1.1)",
+                          },
+                        },
+                        "&::before": {
+                          content: '""',
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 4,
+                          background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                        },
+                      }}
+                      onClick={() => handleViewDetails(club)}
+                    >
+                      <CardContent sx={{ flexGrow: 1, pb: 1}}>
+                        {/* Club Icon Badge */}
+                        <Box
+                          className="club-badge"
+                          sx={{
+                            position: "absolute",
+                            top: 16,
+                            right: 16,
+                            bgcolor: "primary.main",
+                            color: "white",
+                            borderRadius: "50%",
+                            p: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "transform 0.3s ease",
+                          }}
+                        >
+                          <DirectionsRun fontSize="small" />
+                        </Box>
 
-                  {club.location && (
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                      <LocationOn fontSize="small" sx={{ mr: 0.5, color: "text.secondary" }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {club.location}
-                      </Typography>
-                    </Box>
-                  )}
+                        <Typography
+                          variant="h6"
+                          gutterBottom
+                          sx={{
+                            fontWeight: 600,
+                            pr: 13,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {club.name}
+                        </Typography>
 
-                  {club.memberCount !== undefined && (
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                      <People fontSize="small" sx={{ mr: 0.5, color: "text.secondary" }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {club.memberCount} {club.memberCount === 1 ? "member" : "members"}
-                      </Typography>
-                    </Box>
-                  )}
+                        {club.location && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mb: 1.5,
+                              color: "text.secondary",
+                            }}
+                          >
+                            <LocationOn
+                              fontSize="small"
+                              sx={{ mr: 0.5, fontSize: 18 }}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{ fontSize: "0.875rem" }}
+                            >
+                              {club.location}
+                            </Typography>
+                          </Box>
+                        )}
 
-                  {club.description && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {club.description.length > 100
-                        ? `${club.description.substring(0, 100)}...`
-                        : club.description}
-                    </Typography>
-                  )}
+                        {club.memberCount !== undefined && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mb: 2,
+                              color: "text.secondary",
+                            }}
+                          >
+                            <People
+                              fontSize="small"
+                              sx={{ mr: 0.5, fontSize: 18 }}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{ fontSize: "0.875rem" }}
+                            >
+                              {club.memberCount}{" "}
+                              {club.memberCount === 1 ? "member" : "members"}
+                            </Typography>
+                          </Box>
+                        )}
 
-                  {isRequestPending(club.id) && (
-                    <Chip
-                      label="Request Pending"
-                      color="warning"
-                      size="small"
-                      sx={{ mt: 1 }}
-                    />
-                  )}
-                </CardContent>
+                        {club.description && (
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              mb: 2,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: "vertical",
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            {club.description}
+                          </Typography>
+                        )}
 
-                <CardActions sx={{ p: 2, pt: 0 }}>
-                  <Button
-                    size="small"
-                    onClick={() => handleViewDetails(club)}
-                    fullWidth
-                  >
-                    View Details
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
+                        {isRequestPending(club.id) && (
+                          <Chip
+                            label="Request Pending"
+                            color="warning"
+                            size="small"
+                            icon={<HourglassEmpty />}
+                            sx={{ mt: 1 }}
+                          />
+                        )}
+                      </CardContent>
+
+                      <CardActions
+                        sx={{
+                          p: 2,
+                          pt: 0,
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewDetails(club);
+                          }}
+                          fullWidth
+                          sx={{
+                            borderRadius: 2,
+                            textTransform: "none",
+                            fontWeight: 600,
+                          }}
+                        >
+                          View Details
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </>
+          )}
+        </CardContent>
+      </Box>
 
       {/* Club Details Dialog */}
       <Dialog
@@ -249,35 +408,117 @@ const ClubBrowser = () => {
         onClose={() => setDetailsOpen(false)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            overflow: "hidden",
+          },
+        }}
       >
         {selectedClub && (
           <>
-            <DialogTitle>
-              <Typography variant="h5">{selectedClub.name}</Typography>
-            </DialogTitle>
-            <DialogContent>
+            {/* Dialog Header with Gradient */}
+            <Box
+              sx={{
+                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                color: "white",
+                p: 3,
+                position: "relative",
+                overflow: "hidden",
+                "&::after": {
+                  content: '""',
+                  position: "absolute",
+                  top: -50,
+                  right: -50,
+                  width: 200,
+                  height: 200,
+                  borderRadius: "50%",
+                  background: "rgba(255, 255, 255, 0.1)",
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  position: "relative",
+                  zIndex: 1,
+                }}
+              >
+                <Box
+                  sx={{
+                    bgcolor: "rgba(255, 255, 255, 0.2)",
+                    borderRadius: "50%",
+                    p: 1.5,
+                    mr: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <DirectionsRun sx={{ fontSize: 32 }} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                    {selectedClub.name}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            <DialogContent sx={{ p: 3 }}>
               {selectedClub.location && (
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <LocationOn sx={{ mr: 1, color: "text.secondary" }} />
-                  <Typography variant="body1">{selectedClub.location}</Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    mb: 2,
+                    p: 2,
+                    bgcolor: "grey.50",
+                    borderRadius: 2,
+                  }}
+                >
+                  <LocationOn sx={{ mr: 1.5, color: "primary.main" }} />
+                  <Typography variant="body1">
+                    {selectedClub.location}
+                  </Typography>
                 </Box>
               )}
 
               {selectedClub.memberCount !== undefined && (
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <People sx={{ mr: 1, color: "text.secondary" }} />
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    mb: 2,
+                    p: 2,
+                    bgcolor: "grey.50",
+                    borderRadius: 2,
+                  }}
+                >
+                  <People sx={{ mr: 1.5, color: "primary.main" }} />
                   <Typography variant="body1">
-                    {selectedClub.memberCount} {selectedClub.memberCount === 1 ? "member" : "members"}
+                    {selectedClub.memberCount}{" "}
+                    {selectedClub.memberCount === 1 ? "member" : "members"}
                   </Typography>
                 </Box>
               )}
 
               {selectedClub.description && (
                 <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{
+                      mb: 1,
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      fontSize: "0.75rem",
+                    }}
+                  >
                     About
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
                     {selectedClub.description}
                   </Typography>
                 </Box>
@@ -285,34 +526,66 @@ const ClubBrowser = () => {
 
               {selectedClub.contactEmail && (
                 <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{
+                      mb: 1,
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      fontSize: "0.75rem",
+                    }}
+                  >
                     Contact
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
                     {selectedClub.contactEmail}
                   </Typography>
                 </Box>
               )}
 
               {isRequestPending(selectedClub.id) && (
-                <Alert severity="info" sx={{ mt: 2 }}>
+                <Alert
+                  severity="info"
+                  icon={<HourglassEmpty />}
+                  sx={{ mt: 2, borderRadius: 2 }}
+                >
                   Your join request is pending approval from the club admin
                 </Alert>
               )}
 
               {error && (
-                <Alert severity="error" sx={{ mt: 2 }}>
+                <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
                   {error}
                 </Alert>
               )}
             </DialogContent>
-            <DialogActions sx={{ p: 3, pt: 1 }}>
-              <Button onClick={() => setDetailsOpen(false)}>Cancel</Button>
+
+            <DialogActions sx={{ p: 3, pt: 0, gap: 1 }}>
+              <Button
+                onClick={() => setDetailsOpen(false)}
+                variant="outlined"
+                sx={{
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  px: 3,
+                }}
+              >
+                Cancel
+              </Button>
               {!isRequestPending(selectedClub.id) && (
                 <Button
                   variant="contained"
                   onClick={() => handleRequestToJoin(selectedClub.id)}
                   disabled={submitting}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    px: 3,
+                    boxShadow: 2,
+                  }}
                 >
                   {submitting ? "Requesting..." : "Request to Join"}
                 </Button>

@@ -126,59 +126,66 @@ function App() {
       <BrowserRouter>
         <MainLayout onLogout={handleLogout} userRole={userRole}>
           <Routes>
-            <Route 
-              path="/" 
+            <Route
+              path="/"
               element={
-                <Navigate to={!userRole?.clubId ? "/clubs" : "/dashboard"} replace />
-              } 
+                <Navigate
+                  to={!userRole?.clubId ? "/clubs" : "/dashboard"}
+                  replace
+                />
+              }
             />
             <Route
               path="/dashboard"
               element={
-                userRole?.clubId ? (
-                  <Dashboard
-                    user={user}
-                    userProfile={userProfile}
-                    onEventClick={handleEventClick}
-                    onAddEvent={handleAddEvent}
-                  />
-                ) : (
-                  <Navigate to="/clubs" replace />
-                )
+                <Dashboard
+                  user={user}
+                  userProfile={userProfile}
+                  onEventClick={handleEventClick}
+                  onAddEvent={handleAddEvent}
+                />
               }
             />
             <Route
               path="/calendar"
               element={
-                userRole?.clubId ? (
-                  <EventCalendar
-                    onEventClick={handleEventClick}
-                    user={user}
-                    onAddEvent={handleAddEvent}
-                  />
-                ) : (
-                  <Navigate to="/clubs" replace />
-                )
+                <EventCalendar
+                  onEventClick={handleEventClick}
+                  user={user}
+                  onAddEvent={handleAddEvent}
+                />
               }
             />
             <Route path="/profile" element={<Profile user={user} />} />
-            
+
             {/* Club Browser for users without a club */}
             {!userRole?.clubId && (
               <Route path="/clubs" element={<ClubBrowser />} />
             )}
-            
+
             {/* Club/Admin Panel for all members with a club */}
             {userRole?.clubId && (
               <Route
                 path="/admin/members"
                 element={
-                  <ClubPanel user={user} clubId={userRole?.clubId} userRole={userRole?.role} />
+                  <ClubPanel
+                    user={user}
+                    clubId={userRole?.clubId}
+                    userRole={userRole?.role}
+                  />
                 }
               />
             )}
-            
-            <Route path="*" element={<Navigate to={!userRole?.clubId ? "/clubs" : "/dashboard"} replace />} />
+
+            <Route
+              path="*"
+              element={
+                <Navigate
+                  to={!userRole?.clubId ? "/clubs" : "/dashboard"}
+                  replace
+                />
+              }
+            />
           </Routes>
         </MainLayout>
 

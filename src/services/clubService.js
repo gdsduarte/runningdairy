@@ -89,7 +89,7 @@ export const registerClub = async (clubData, adminData, planType) => {
     const userRef = doc(db, 'users', adminUid);
     await setDoc(userRef, {
       email: adminData.email,
-      name: adminData.name,
+      displayName: adminData.name,
       role: 'admin',
       clubId: clubId,
       createdAt: serverTimestamp(),
@@ -231,7 +231,7 @@ export const requestToJoinClub = async (userId, clubId) => {
     await addDoc(requestsRef, {
       userId,
       clubId,
-      userName: userSnap.data().name || userSnap.data().email,
+      userName: userSnap.data().displayName || userSnap.data().email,
       userEmail: userSnap.data().email,
       clubName: clubSnap.data().name,
       status: 'pending',
@@ -312,11 +312,15 @@ export const getClubJoinRequests = async (clubId) => {
  */
 export const approveJoinRequest = async (requestId, userId, clubId) => {
   try {
-    // Update user document to add clubId
+    // Get user document to check existing data
     const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    const userData = userSnap.data();
+    
+    // Update user document to add clubId, preserving existing role if set
     await updateDoc(userRef, {
       clubId: clubId,
-      role: 'member',
+      role: userData.role || 'member',
       isActive: true,
       updatedAt: serverTimestamp()
     });

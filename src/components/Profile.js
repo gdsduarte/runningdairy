@@ -373,7 +373,7 @@ function Profile({ user }) {
           py: responsiveSpacing.sectionGap,
         }}
       >
-        {/* Tab Content */}
+        {/* Profile */}
         {activeTab === 0 && (
           <Box>
             {isEditing ? (
@@ -638,6 +638,7 @@ function Profile({ user }) {
           </Box>
         )}
 
+        {/* History */}
         {activeTab === 1 && (
           <Box>
             {pastEvents.length === 0 ? (
@@ -711,7 +712,8 @@ function Profile({ user }) {
             )}
           </Box>
         )}
-
+        
+        {/* Badges */}
         {activeTab === 2 && (
           <Box>
             {badges.length === 0 ? (

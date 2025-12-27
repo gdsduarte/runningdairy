@@ -24,7 +24,7 @@ const createUserDocument = async (user, isNewUser = false, additionalData = {}) 
       displayName: user.displayName || additionalData.displayName || user.email.split('@')[0],
       role: additionalData.role || 'member', // Default role
       clubId: additionalData.clubId || null,
-      status: 'active',
+      isActive: true,
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
       ...additionalData

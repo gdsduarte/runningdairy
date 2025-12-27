@@ -75,7 +75,7 @@ export const removeMember = async (userId, currentUserRole, targetUserRole) => {
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
       clubId: null,
-      status: 'inactive',
+      isActive: false,
       updatedAt: serverTimestamp()
     });
 
