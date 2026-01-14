@@ -296,7 +296,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                     sx={{
                       bgcolor: "primary.main",
                       color: "white",
-                      borderRadius: 2,
+                      borderRadius: 1,
                       p: 2,
                       minWidth: 70,
                       textAlign: "center",
@@ -375,7 +375,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                     sx={{
                       bgcolor: "text.secondary",
                       color: "white",
-                      borderRadius: 2,
+                      borderRadius: 1,
                       p: 2,
                       minWidth: 70,
                       textAlign: "center",
@@ -964,7 +964,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                 width: 40,
                 height: 4,
                 bgcolor: "divider",
-                borderRadius: 2,
+                borderRadius: 1,
               }}
             />
           </Box>

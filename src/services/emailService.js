@@ -2,25 +2,27 @@ import { functions } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
 
 /**
- * Send invitation email to new member via Firebase Cloud Function
- * @param {string} email - Recipient email
- * @param {string} displayName - Recipient name
- * @param {string} invitationToken - Invitation token/ID
+ * Send join request notification to club admins via Firebase Cloud Function
+ * @param {Array<string>} adminEmails - Array of admin email addresses
+ * @param {string} userName - Name of the user requesting to join
+ * @param {string} userEmail - Email of the user requesting to join
  * @param {string} clubName - Name of the club
+ * @param {string} requestId - Join request ID
  */
-export const sendInvitationEmail = async (email, displayName, invitationToken, clubName) => {
+export const sendJoinRequestNotification = async (adminEmails, userName, userEmail, clubName, requestId) => {
   try {
     // Call the Firebase Cloud Function
-    const sendEmail = httpsCallable(functions, 'sendInvitationEmail');
+    const sendEmail = httpsCallable(functions, 'sendJoinRequestNotification');
     
     const result = await sendEmail({
-      email,
-      displayName,
-      invitationToken,
+      adminEmails,
+      userName,
+      userEmail,
       clubName,
+      requestId,
     });
 
-    console.log('Email sent successfully:', result.data);
+    console.log('Join request notification sent successfully:', result.data);
 
     return {
       success: true,
@@ -28,21 +30,74 @@ export const sendInvitationEmail = async (email, displayName, invitationToken, c
       emailId: result.data.emailId,
     };
   } catch (error) {
-    console.error('Error sending invitation email:', error);
+    console.error('Error sending join request notification:', error);
     console.error('Error code:', error.code);
     console.error('Error details:', error.details);
     
     // Provide more specific error messages
-    let errorMessage = 'Failed to send invitation email';
+    let errorMessage = 'Failed to send join request notification';
     
     if (error.code === 'permission-denied') {
-      errorMessage = 'You do not have permission to send invitations for this club';
+      errorMessage = 'You do not have permission to send notifications';
     } else if (error.code === 'unauthenticated') {
-      errorMessage = 'You must be logged in to send invitations';
+      errorMessage = 'You must be logged in to send notifications';
     } else if (error.code === 'resource-exhausted') {
       errorMessage = 'Rate limit exceeded. Please try again later';
     } else if (error.code === 'invalid-argument') {
-      errorMessage = error.message || 'Invalid invitation data';
+      errorMessage = error.message || 'Invalid notification data';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+};
+
+/**
+ * Send approval confirmation email to new member via Firebase Cloud Function
+ * @param {string} email - Member email
+ * @param {string} displayName - Member name
+ * @param {string} clubName - Name of the club
+ * @param {string} approvedBy - Name of the admin who approved
+ */
+export const sendApprovalConfirmation = async (email, displayName, clubName, approvedBy) => {
+  try {
+    // Call the Firebase Cloud Function
+    const sendEmail = httpsCallable(functions, 'sendApprovalConfirmation');
+    
+    const result = await sendEmail({
+      email,
+      displayName,
+      clubName,
+      approvedBy,
+    });
+
+    console.log('Approval confirmation sent successfully:', result.data);
+
+    return {
+      success: true,
+      message: result.data.message,
+      emailId: result.data.emailId,
+    };
+  } catch (error) {
+    console.error('Error sending approval confirmation:', error);
+    console.error('Error code:', error.code);
+    console.error('Error details:', error.details);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to send approval confirmation';
+    
+    if (error.code === 'permission-denied') {
+      errorMessage = 'You do not have permission to send confirmations';
+    } else if (error.code === 'unauthenticated') {
+      errorMessage = 'You must be logged in to send confirmations';
+    } else if (error.code === 'resource-exhausted') {
+      errorMessage = 'Rate limit exceeded. Please try again later';
+    } else if (error.code === 'invalid-argument') {
+      errorMessage = error.message || 'Invalid confirmation data';
     } else if (error.message) {
       errorMessage = error.message;
     }

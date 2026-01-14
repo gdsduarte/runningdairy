@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   subscribeToEvent,
   rsvpToEvent,
@@ -7,7 +7,7 @@ import {
 } from "../services";
 import {
   Box,
-  Modal,
+  Dialog,
   Typography,
   Button,
   IconButton,
@@ -15,10 +15,15 @@ import {
   Chip,
   Alert,
   CircularProgress,
-  Divider,
   useTheme,
+  useMediaQuery,
+  Fade,
+  Slide,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
-import { responsiveSpacing, componentStyles } from "../utils/responsive";
 import {
   Close,
   CalendarToday,
@@ -30,14 +35,20 @@ import {
   Delete,
   CheckCircle,
   OpenInNew,
+  ArrowBack,
+  MoreHoriz,
 } from "@mui/icons-material";
 
 function EventDetails({ event, onClose, user, onEditEvent }) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [liveEvent, setLiveEvent] = useState(event);
   const [canEdit, setCanEdit] = useState(false);
+  const [showAllAttendees, setShowAllAttendees] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const menuOpen = Boolean(anchorEl);
 
   // Real-time listener for event updates
   useEffect(() => {
@@ -123,14 +134,14 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
     }
   };
 
-  const formatDate = (date) => {
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+  // const formatDate = (date) => {
+  //   return date.toLocaleDateString("en-US", {
+  //     weekday: "long",
+  //     year: "numeric",
+  //     month: "long",
+  //     day: "numeric",
+  //   });
+  // };
 
   const formatTime = (date) => {
     return date.toLocaleTimeString("en-US", {
@@ -140,262 +151,633 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
   };
 
   return (
-    <Modal
+    <Dialog
       open={true}
       onClose={onClose}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+      fullScreen={isMobile}
+      maxWidth="md"
+      fullWidth
+      TransitionComponent={Slide}
+      TransitionProps={{
+        direction: isMobile ? "up" : "down",
+      }}
+      PaperProps={{
+        sx: {
+          maxWidth: 700,
+          height: isMobile ? "100%" : "auto",
+          maxHeight: isMobile ? "100%" : "90vh",
+          m: isMobile ? 0 : 2,
+          borderRadius: isMobile ? 0 : 2,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        },
       }}
     >
       <Box
         sx={{
-          ...componentStyles.responsiveModal,
-          maxWidth: 700,
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflow: "hidden",
         }}
       >
-        {/* Header */}
+        {/* Header with gradient background */}
         <Box
           sx={{
-            position: "sticky",
-            top: 0,
-            bgcolor: theme.palette.primary.main,
+            position: "relative",
+            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
             color: "white",
-            p: responsiveSpacing.pageContainer,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            zIndex: 1,
+            p: isMobile ? 2 : 3,
+            pb: isMobile ? 8 : 3,
+            overflow: "hidden",
           }}
         >
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h2" sx={{ color: "white", mb: 1 }}>
-              {liveEvent.name}
-            </Typography>
-            {isPastEvent && (
-              <Chip
-                label="Past Event"
-                size="small"
-                sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "white" }}
-              />
-            )}
-          </Box>
-          <IconButton
-            onClick={onClose}
-            sx={{
-              color: "white",
-              bgcolor: "rgba(255,255,255,0.1)",
-              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
-            }}
-          >
-            <Close />
-          </IconButton>
-        </Box>
-
-        {/* Content */}
-        <Box sx={{ p: responsiveSpacing.pageContainer }}>
-          {/* Info Section */}
+          {/* Background pattern */}
           <Box
             sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundImage:
+                "radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)",
+              pointerEvents: "none",
+            }}
+          />
+
+          {/* Header Content */}
+          <Box
+            sx={{
+              position: "relative",
+              zIndex: 1,
               display: "flex",
-              flexDirection: "column",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
               gap: 2,
-              mb: responsiveSpacing.sectionGap,
             }}
           >
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <CalendarToday sx={{ color: theme.palette.primary.main }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Date
-                </Typography>
-                <Typography variant="body1">
-                  {formatDate(liveEvent.date)}
-                </Typography>
-              </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant={isMobile ? "h5" : "h4"}
+                sx={{
+                  color: "white",
+                  fontWeight: 700,
+                  mb: 1,
+                  textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                }}
+              >
+                {liveEvent.name}
+              </Typography>
+              {isPastEvent && (
+                <Chip
+                  label="Past Event"
+                  size="small"
+                  sx={{
+                    bgcolor: "rgba(255,255,255,0.25)",
+                    color: "white",
+                    fontWeight: 600,
+                    backdropFilter: "blur(10px)",
+                  }}
+                />
+              )}
             </Box>
-
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <Schedule sx={{ color: theme.palette.primary.main }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Time
-                </Typography>
-                <Typography variant="body1">
-                  {formatTime(liveEvent.date)}
-                </Typography>
-              </Box>
-            </Box>
-
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <LocationOn sx={{ color: theme.palette.primary.main }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Location
-                </Typography>
-                <Typography variant="body1">{liveEvent.location}</Typography>
-              </Box>
-            </Box>
-
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <DirectionsRun sx={{ color: theme.palette.primary.main }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Distance
-                </Typography>
-                <Typography variant="body1">{liveEvent.distance}</Typography>
-              </Box>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              {canEdit && (
+                <IconButton
+                  onClick={(e) => setAnchorEl(e.currentTarget)}
+                  sx={{
+                    color: "white",
+                    bgcolor: "rgba(255,255,255,0.15)",
+                    backdropFilter: "blur(10px)",
+                    "&:hover": { bgcolor: "rgba(255,255,255,0.25)" },
+                  }}
+                >
+                  <MoreHoriz />
+                </IconButton>
+              )}
+              <IconButton
+                onClick={onClose}
+                sx={{
+                  color: "white",
+                  bgcolor: "rgba(255,255,255,0.15)",
+                  backdropFilter: "blur(10px)",
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.25)" },
+                }}
+              >
+                {isMobile ? <ArrowBack /> : <Close />}
+              </IconButton>
             </Box>
           </Box>
+        </Box>
 
-          {liveEvent.description && (
-            <>
-              <Divider sx={{ my: responsiveSpacing.sectionGap }} />
-              <Box sx={{ mb: responsiveSpacing.sectionGap }}>
-                <Typography variant="h3" gutterBottom>
-                  About this event
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                  {liveEvent.description}
-                </Typography>
-              </Box>
-            </>
-          )}
+        {/* Admin Menu */}
+        <Menu
+          anchorEl={anchorEl}
+          open={menuOpen}
+          onClose={() => setAnchorEl(null)}
+          transformOrigin={{ horizontal: "right", vertical: "top" }}
+          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+          PaperProps={{
+            sx: {
+              mt: 1,
+              minWidth: 180,
+              boxShadow: 3,
+              borderRadius: 1,
+            },
+          }}
+        >
+          <MenuItem
+            onClick={() => {
+              setAnchorEl(null);
+              onEditEvent(liveEvent);
+            }}
+            disabled={loading}
+          >
+            <ListItemIcon>
+              <Edit fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText>Edit Event</ListItemText>
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setAnchorEl(null);
+              handleDelete();
+            }}
+            disabled={loading}
+          >
+            <ListItemIcon>
+              <Delete fontSize="small" color="error" />
+            </ListItemIcon>
+            <ListItemText sx={{ color: "error.main" }}>
+              Delete Event
+            </ListItemText>
+          </MenuItem>
+        </Menu>
 
-          {/* Attendees */}
-          <Divider sx={{ my: responsiveSpacing.sectionGap }} />
-          <Box sx={{ mb: responsiveSpacing.sectionGap }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-              <People sx={{ color: theme.palette.primary.main }} />
-              <Typography variant="h3">
-                Attendees ({liveEvent.attendees?.length || 0})
+        {/* Info Cards */}
+        <Box
+          sx={{
+            position: "relative",
+            mt: isMobile ? -5 : 0,
+            mx: isMobile ? 2 : 3,
+            mb: 2,
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(4, 1fr)" },
+            gap: 1.5,
+            zIndex: 2,
+          }}
+        >
+          {/* Date Card */}
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              borderRadius: 1,
+              p: 1.5,
+              boxShadow: isMobile ? 3 : 1,
+              border: 1,
+              borderColor: "divider",
+              textAlign: "center",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 0.5,
+                justifyContent: "center",
+              }}
+            >
+              <CalendarToday
+                sx={{
+                  fontSize: 24,
+                  color: theme.palette.primary.main,
+                  mb: 0.5,
+                }}
+              />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+              >
+                Date
               </Typography>
             </Box>
+            <Typography variant="body2" fontWeight={600} sx={{ mt: 0.5 }}>
+              {liveEvent.date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
+            </Typography>
+          </Box>
+
+          {/* Time Card */}
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              borderRadius: 1,
+              p: 1.5,
+              boxShadow: isMobile ? 3 : 1,
+              border: 1,
+              borderColor: "divider",
+              textAlign: "center",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 0.5,
+                justifyContent: "center",
+              }}
+            >
+              <Schedule
+                sx={{
+                  fontSize: 24,
+                  color: theme.palette.primary.main,
+                  mb: 0.5,
+                }}
+              />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+              >
+                Time
+              </Typography>
+            </Box>
+            <Typography variant="body2" fontWeight={600} sx={{ mt: 0.5 }}>
+              {formatTime(liveEvent.date)}
+            </Typography>
+          </Box>
+
+          {/* Location Card */}
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              borderRadius: 1,
+              p: 1.5,
+              boxShadow: isMobile ? 3 : 1,
+              border: 1,
+              borderColor: "divider",
+              textAlign: "center",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 0.5,
+                justifyContent: "center",
+              }}
+            >
+              <LocationOn
+                sx={{
+                  fontSize: 24,
+                  color: theme.palette.primary.main,
+                  mb: 0.5,
+                }}
+              />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+              >
+                Location
+              </Typography>
+            </Box>
+            <Typography
+              variant="body2"
+              fontWeight={600}
+              sx={{
+                mt: 0.5,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {liveEvent.location}
+            </Typography>
+          </Box>
+
+          {/* Distance Card */}
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              borderRadius: 1,
+              p: 1.5,
+              boxShadow: isMobile ? 3 : 1,
+              border: 1,
+              borderColor: "divider",
+              textAlign: "center",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 0.5,
+                justifyContent: "center",
+              }}
+            >
+              <DirectionsRun
+                sx={{
+                  fontSize: 24,
+                  color: theme.palette.primary.main,
+                  mb: 0.5,
+                }}
+              />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+              >
+                Distance
+              </Typography>
+            </Box>
+            <Typography variant="body2" fontWeight={600} sx={{ mt: 0.5 }}>
+              {liveEvent.distance}
+            </Typography>
+          </Box>
+        </Box>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            px: isMobile ? 2 : 3,
+            pb: isMobile ? 2 : 3,
+          }}
+        >
+          <People sx={{ color: theme.palette.primary.main }} />
+          <Typography variant="h6" fontWeight={700}>
+            Attendees
+          </Typography>
+          <Chip
+            label={liveEvent.attendees?.length || 0}
+            size="small"
+            sx={{
+              bgcolor: theme.palette.primary.main,
+              color: "white",
+              fontWeight: 600,
+            }}
+          />
+        </Box>
+
+        {/* Scrollable Content */}
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: "auto",
+            px: isMobile ? 2 : 3,
+            pb: isMobile ? 2 : 3,
+          }}
+        >
+          {liveEvent.description && (
+            <Box
+              sx={{
+                mb: 3,
+                p: 2,
+                bgcolor: "background.default",
+                borderRadius: 1,
+                border: 1,
+                borderColor: "divider",
+              }}
+            >
+              <Typography
+                variant="subtitle2"
+                color="primary"
+                fontWeight={700}
+                sx={{ mb: 1 }}
+              >
+                About this event
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {liveEvent.description}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Attendees Section */}
+          <Box sx={{ mb: 3 }}>
             {liveEvent.attendees && liveEvent.attendees.length > 0 ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {liveEvent.attendees.map((attendee, index) => {
-                  const isCurrentUser = user && user.uid === attendee.uid;
-                  return (
-                    <Box
-                      key={index}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 2,
-                        p: 1.5,
-                        borderRadius: 1,
-                        bgcolor: isCurrentUser
-                          ? "rgba(0, 102, 255, 0.1)"
-                          : "background.default",
-                        border: isCurrentUser ? 2 : 1,
-                        borderColor: isCurrentUser
-                          ? theme.palette.primary.main
-                          : "divider",
-                      }}
-                    >
-                      <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
-                        {attendee.displayName?.charAt(0).toUpperCase() || "U"}
-                      </Avatar>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body1" fontWeight={600}>
-                          {attendee.displayName}
-                          {isCurrentUser && " (You)"}
-                        </Typography>
-                        {attendee.clubName && (
-                          <Typography variant="body2" color="text.secondary">
-                            {attendee.clubName}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-                  );
-                })}
+              <Box>
+                {/* First 5 attendees or all if expanded */}
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {liveEvent.attendees
+                    .slice(0, showAllAttendees ? undefined : 5)
+                    .map((attendee, index) => {
+                      const isCurrentUser = user && user.uid === attendee.uid;
+                      return (
+                        <Fade in={true} key={index} timeout={300 + index * 50}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 2,
+                              p: 1.5,
+                              borderRadius: 1,
+                              bgcolor: isCurrentUser
+                                ? "rgba(99, 102, 241, 0.08)"
+                                : "background.default",
+                              border: 1,
+                              borderColor: isCurrentUser
+                                ? theme.palette.primary.main
+                                : "divider",
+                              transition: "all 0.2s",
+                              "&:hover": {
+                                bgcolor: isCurrentUser
+                                  ? "rgba(99, 102, 241, 0.12)"
+                                  : "action.hover",
+                              },
+                            }}
+                          >
+                            <Avatar
+                              sx={{
+                                bgcolor: isCurrentUser
+                                  ? theme.palette.primary.main
+                                  : theme.palette.secondary.main,
+                                width: 44,
+                                height: 44,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {attendee.displayName?.charAt(0).toUpperCase() ||
+                                "U"}
+                            </Avatar>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography
+                                variant="body1"
+                                fontWeight={600}
+                                sx={{
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {attendee.displayName}
+                                {isCurrentUser && (
+                                  <Chip
+                                    label="You"
+                                    size="small"
+                                    sx={{
+                                      ml: 1,
+                                      height: 20,
+                                      fontSize: "0.7rem",
+                                      bgcolor: theme.palette.primary.main,
+                                      color: "white",
+                                    }}
+                                  />
+                                )}
+                              </Typography>
+                              {attendee.clubName && (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    display: "block",
+                                  }}
+                                >
+                                  {attendee.clubName}
+                                </Typography>
+                              )}
+                            </Box>
+                            {isCurrentUser && (
+                              <CheckCircle
+                                sx={{
+                                  color: theme.palette.primary.main,
+                                  fontSize: 20,
+                                }}
+                              />
+                            )}
+                          </Box>
+                        </Fade>
+                      );
+                    })}
+                </Box>
+
+                {/* Show More/Less Button */}
+                {liveEvent.attendees.length > 5 && (
+                  <Button
+                    variant="text"
+                    fullWidth
+                    onClick={() => setShowAllAttendees(!showAllAttendees)}
+                    sx={{
+                      mt: 1,
+                      textTransform: "none",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {showAllAttendees
+                      ? "Show Less"
+                      : `Show ${liveEvent.attendees.length - 5} More`}
+                  </Button>
+                )}
               </Box>
             ) : (
-              <Typography color="text.secondary">
-                No one has signed up yet. Be the first!
-              </Typography>
+              <Box
+                sx={{
+                  textAlign: "center",
+                  py: 4,
+                  bgcolor: "background.default",
+                  borderRadius: 1,
+                  border: 1,
+                  borderColor: "divider",
+                }}
+              >
+                <People sx={{ fontSize: 48, color: "text.disabled", mb: 1 }} />
+                <Typography color="text.secondary">
+                  No one has signed up yet. Be the first!
+                </Typography>
+              </Box>
             )}
           </Box>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
               {error}
             </Alert>
           )}
+        </Box>
 
-          {/* Admin Actions */}
-          {canEdit && (
-            <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-              <Button
-                variant="outlined"
-                startIcon={<Edit />}
-                onClick={() => onEditEvent(liveEvent)}
-                disabled={loading}
-                fullWidth
-              >
-                Edit Event
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<Delete />}
-                onClick={handleDelete}
-                disabled={loading}
-                fullWidth
-              >
-                Delete
-              </Button>
-            </Box>
+        {/* Fixed Bottom Actions */}
+        <Box
+          sx={{
+            borderTop: 1,
+            borderColor: "divider",
+            p: 2,
+            bgcolor: "background.paper",
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+          }}
+        >
+          {!isPastEvent && (
+            <>
+              {user ? (
+                <Button
+                  variant={isAttending ? "outlined" : "contained"}
+                  fullWidth
+                  size="large"
+                  startIcon={isAttending ? <CheckCircle /> : null}
+                  onClick={handleRSVP}
+                  disabled={loading}
+                  sx={{
+                    borderRadius: 1,
+                    py: 1.5,
+                    fontWeight: 600,
+                    fontSize: "1rem",
+                  }}
+                >
+                  {loading ? (
+                    <CircularProgress size={24} />
+                  ) : isAttending ? (
+                    "You're Attending"
+                  ) : (
+                    "RSVP to Event"
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  onClick={() => alert("Please sign in to RSVP")}
+                  sx={{ borderRadius: 1, py: 1.5, fontWeight: 600 }}
+                >
+                  Sign in to RSVP
+                </Button>
+              )}
+            </>
           )}
 
-          {/* Action Buttons */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {!isPastEvent && (
-              <>
-                {user ? (
-                  <Button
-                    variant={isAttending ? "outlined" : "contained"}
-                    fullWidth
-                    startIcon={isAttending ? <CheckCircle /> : null}
-                    onClick={handleRSVP}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <CircularProgress size={24} />
-                    ) : isAttending ? (
-                      "Attending"
-                    ) : (
-                      "RSVP"
-                    )}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    onClick={() => alert("Please sign in to RSVP")}
-                  >
-                    Sign in to RSVP
-                  </Button>
-                )}
-              </>
-            )}
-
-            <Button
-              variant="outlined"
-              fullWidth
-              endIcon={<OpenInNew />}
-              href={liveEvent.signupLink}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Official Registration
-            </Button>
-          </Box>
+          <Button
+            variant="outlined"
+            fullWidth
+            size="large"
+            endIcon={<OpenInNew />}
+            href={liveEvent.signupLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              borderRadius: 1,
+              py: 1.5,
+              fontWeight: 600,
+            }}
+          >
+            Official Registration
+          </Button>
         </Box>
       </Box>
-    </Modal>
+    </Dialog>
   );
 }
 

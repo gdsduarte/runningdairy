@@ -161,7 +161,7 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
       <Box
         sx={{
           bgcolor: "background.paper",
-          borderRadius: 2,
+          borderRadius: 1,
           boxShadow: 24,
           maxWidth: 800,
           width: "100%",

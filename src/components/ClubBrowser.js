@@ -385,7 +385,7 @@ const ClubBrowser = () => {
                           }}
                           fullWidth
                           sx={{
-                            borderRadius: 2,
+                            borderRadius: 1,
                             textTransform: "none",
                             fontWeight: 600,
                           }}
@@ -475,7 +475,7 @@ const ClubBrowser = () => {
                     mb: 2,
                     p: 2,
                     bgcolor: "grey.50",
-                    borderRadius: 2,
+                    borderRadius: 1,
                   }}
                 >
                   <LocationOn sx={{ mr: 1.5, color: "primary.main" }} />
@@ -493,7 +493,7 @@ const ClubBrowser = () => {
                     mb: 2,
                     p: 2,
                     bgcolor: "grey.50",
-                    borderRadius: 2,
+                    borderRadius: 1,
                   }}
                 >
                   <People sx={{ mr: 1.5, color: "primary.main" }} />
@@ -548,14 +548,14 @@ const ClubBrowser = () => {
                 <Alert
                   severity="info"
                   icon={<HourglassEmpty />}
-                  sx={{ mt: 2, borderRadius: 2 }}
+                  sx={{ mt: 2, borderRadius: 1 }}
                 >
                   Your join request is pending approval from the club admin
                 </Alert>
               )}
 
               {error && (
-                <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
+                <Alert severity="error" sx={{ mt: 2, borderRadius: 1 }}>
                   {error}
                 </Alert>
               )}
@@ -566,7 +566,7 @@ const ClubBrowser = () => {
                 onClick={() => setDetailsOpen(false)}
                 variant="outlined"
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: 1,
                   textTransform: "none",
                   fontWeight: 600,
                   px: 3,
@@ -580,7 +580,7 @@ const ClubBrowser = () => {
                   onClick={() => handleRequestToJoin(selectedClub.id)}
                   disabled={submitting}
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: 1,
                     textTransform: "none",
                     fontWeight: 600,
                     px: 3,

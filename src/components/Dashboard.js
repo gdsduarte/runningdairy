@@ -379,7 +379,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                       bgcolor: "#f3f4f6",
                       px: 2,
                       py: 0.5,
-                      borderRadius: 2,
+                      borderRadius: 1,
                       cursor: "pointer",
                       "&:hover": { bgcolor: "#e5e7eb" },
                     }}
@@ -429,7 +429,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                             sx={{
                               width: "40%",
                               height: 95,
-                              borderRadius: 2,
+                              borderRadius: 1,
                               background:
                                 "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                               display: "flex",
@@ -596,7 +596,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                           sx={{
                             cursor: "pointer",
                             p: 1.5,
-                            borderRadius: 2,
+                            borderRadius: 1,
                             bgcolor: "#FEF3C7",
                             border: "1px solid #FCD34D",
                             transition: "transform 0.2s",
@@ -755,7 +755,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                       color: "white",
                       px: 1.5,
                       py: 0.5,
-                      borderRadius: 2,
+                      borderRadius: 1,
                       fontSize: "0.75rem",
                       fontWeight: 600,
                     }}
@@ -781,7 +781,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                         sx={{
                           cursor: "pointer",
                           p: 1.5,
-                          borderRadius: 2,
+                          borderRadius: 1,
                           bgcolor: "#D1FAE5",
                           border: "1px solid #86EFAC",
                           transition: "transform 0.2s",
@@ -994,7 +994,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                   <Box
                     sx={{
                       height: 170,
-                      borderRadius: 2,
+                      borderRadius: 1,
                       bgcolor: "#f9fafb",
                       display: "flex",
                       alignItems: "flex-end",
@@ -1205,7 +1205,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                       textAlign: "center",
                       py: 1,
                       bgcolor: "#f9fafb",
-                      borderRadius: 2,
+                      borderRadius: 1,
                     }}
                   >
                     <Typography
@@ -1233,7 +1233,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                       textAlign: "center",
                       py: 1,
                       bgcolor: "#f9fafb",
-                      borderRadius: 2,
+                      borderRadius: 1,
                     }}
                   >
                     <Typography

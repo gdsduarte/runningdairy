@@ -665,7 +665,7 @@ function Profile({ user }) {
                           sx={{
                             bgcolor: "text.secondary",
                             color: "white",
-                            borderRadius: 2,
+                            borderRadius: 1,
                             p: 2,
                             minWidth: 70,
                             textAlign: "center",

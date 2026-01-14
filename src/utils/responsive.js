@@ -135,7 +135,7 @@ export const componentStyles = {
     maxWidth: { xs: 400, sm: 600, md: 800 },
     maxHeight: { xs: '95vh', sm: '90vh' },
     bgcolor: 'background.paper',
-    borderRadius: 2,
+    borderRadius: 1,
     boxShadow: 24,
     overflow: 'auto',
   },
