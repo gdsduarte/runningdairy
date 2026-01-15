@@ -1,5 +1,5 @@
 const functions = require("firebase-functions");
-const {HttpsError} = require("firebase-functions/v2/https");
+const { HttpsError } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const nodemailer = require("nodemailer");
 
@@ -20,6 +20,12 @@ function getTransporter() {
       process.env.GMAIL_APP_PASSWORD ||
       (functions.config().gmail && functions.config().gmail.password);
 
+    logger.info("Initializing email transporter", {
+      hasGmailUser: !!gmailUser,
+      hasGmailPassword: !!gmailPassword,
+      gmailUserSource: process.env.GMAIL_USER ? "env" : "config",
+    });
+
     if (!gmailUser || !gmailPassword) {
       throw new HttpsError(
           "failed-precondition",
@@ -28,7 +34,12 @@ function getTransporter() {
     }
 
     // Check if running in emulator (development)
-    const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+    // Multiple ways to detect emulator environment
+    const isEmulator =
+      process.env.FUNCTIONS_EMULATOR === "true" ||
+      process.env.FIREBASE_CONFIG === undefined ||
+      (process.env.K_SERVICE === undefined &&
+        process.env.FUNCTION_TARGET === undefined);
 
     const transportConfig = {
       service: "gmail",
@@ -43,7 +54,16 @@ function getTransporter() {
       transportConfig.tls = {
         rejectUnauthorized: false,
       };
-      logger.info("Running in emulator mode - TLS certificate validation disabled");
+      logger.info(
+          "Running in emulator mode - TLS certificate validation disabled",
+          {
+            FUNCTIONS_EMULATOR: process.env.FUNCTIONS_EMULATOR,
+            FIREBASE_CONFIG: process.env.FIREBASE_CONFIG ? "set" : "not set",
+            K_SERVICE: process.env.K_SERVICE ? "set" : "not set",
+          },
+      );
+    } else {
+      logger.info("Running in production mode - Full TLS validation enabled");
     }
 
     transporter = nodemailer.createTransport(transportConfig);
@@ -84,6 +104,8 @@ function getAppUrl() {
  */
 async function sendEmail(to, subject, html, fromName = "Running Diary") {
   try {
+    logger.info("Attempting to send email", { to, subject });
+
     const emailTransporter = getTransporter();
     const gmailUser = getGmailUser();
 
@@ -94,10 +116,16 @@ async function sendEmail(to, subject, html, fromName = "Running Diary") {
       html,
     };
 
+    logger.info("Sending email with nodemailer", {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+    });
+
     const result = await emailTransporter.sendMail(mailOptions);
 
     if (!result.messageId) {
-      logger.error("No message ID returned", {to});
+      logger.error("No message ID returned", { to });
       throw new HttpsError(
           "internal",
           "Email service did not return confirmation ID",
@@ -117,6 +145,8 @@ async function sendEmail(to, subject, html, fromName = "Running Diary") {
   } catch (error) {
     logger.error("Error sending email", {
       error: error.message,
+      errorCode: error.code,
+      errorStack: error.stack,
       to,
       subject,
     });
@@ -126,10 +156,7 @@ async function sendEmail(to, subject, html, fromName = "Running Diary") {
       throw error;
     }
 
-    throw new HttpsError(
-        "internal",
-        `Failed to send email: ${error.message}`,
-    );
+    throw new HttpsError("internal", `Failed to send email: ${error.message}`);
   }
 }
 

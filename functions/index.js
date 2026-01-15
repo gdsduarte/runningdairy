@@ -8,22 +8,32 @@
 // Load environment variables from .env file
 require("dotenv").config();
 
-const {setGlobalOptions} = require("firebase-functions");
-const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
 // Import utilities and services
-const {sanitizeInput, validateEmail, validateEmails} = require("./utils/validation");
-const {enforceRateLimit} = require("./utils/rateLimit");
-const {requireAuth, verifyClubAdmin, getClubAdminEmails} = require("./utils/permissions");
-const {sendEmail, getAppUrl} = require("./services/emailService");
-const {getJoinRequestTemplate, getApprovalConfirmationTemplate} = require("./utils/emailTemplates");
+const {
+  sanitizeInput,
+  validateEmail,
+} = require("./utils/validation");
+const { enforceRateLimit } = require("./utils/rateLimit");
+const {
+  requireAuth,
+  verifyClubAdmin,
+  getClubAdminEmails,
+} = require("./utils/permissions");
+const { sendEmail, getAppUrl } = require("./services/emailService");
+const {
+  getJoinRequestTemplate,
+  getApprovalConfirmationTemplate,
+} = require("./utils/emailTemplates");
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
-setGlobalOptions({maxInstances: 10});
+setGlobalOptions({ maxInstances: 10 });
 
 /**
  * Send join request notification to club admins
@@ -35,13 +45,13 @@ exports.sendJoinRequestNotification = onCall(
     },
     async (request) => {
       try {
-        // 1. Authentication check
+      // 1. Authentication check
         const uid = requireAuth(request.auth);
 
         // 2. Rate limiting
         enforceRateLimit(uid);
 
-        const {clubId, userName, userEmail} = request.data;
+        const { clubId, userName, userEmail } = request.data;
 
         // 3. Input validation
         if (!clubId || !userName || !userEmail) {
@@ -71,8 +81,13 @@ exports.sendJoinRequestNotification = onCall(
         const adminEmails = await getClubAdminEmails(sanitizedClubId);
 
         if (adminEmails.length === 0) {
-          logger.warn("No admin emails found for club", {clubId: sanitizedClubId});
-          throw new HttpsError("failed-precondition", "No admins found for this club");
+          logger.warn("No admin emails found for club", {
+            clubId: sanitizedClubId,
+          });
+          throw new HttpsError(
+              "failed-precondition",
+              "No admins found for this club",
+          );
         }
 
         // 7. Generate email
@@ -113,7 +128,10 @@ exports.sendJoinRequestNotification = onCall(
           throw error;
         }
 
-        throw new HttpsError("internal", `Failed to send notification: ${error.message}`);
+        throw new HttpsError(
+            "internal",
+            `Failed to send notification: ${error.message}`,
+        );
       }
     },
 );
@@ -128,13 +146,13 @@ exports.sendApprovalConfirmation = onCall(
     },
     async (request) => {
       try {
-        // 1. Authentication check
+      // 1. Authentication check
         const uid = requireAuth(request.auth);
 
         // 2. Rate limiting
         enforceRateLimit(uid);
 
-        const {clubId, memberEmail, memberName} = request.data;
+        const { clubId, memberEmail, memberName } = request.data;
 
         // 3. Input validation
         if (!clubId || !memberEmail || !memberName) {
@@ -169,7 +187,8 @@ exports.sendApprovalConfirmation = onCall(
         const clubName = sanitizeInput(clubData.name || "Running Club", 100);
 
         const approverData = approverDoc.exists ? approverDoc.data() : {};
-        const approvedBy = approverData.displayName || approverData.name || "Admin";
+        const approvedBy =
+        approverData.displayName || approverData.name || "Admin";
 
         // 7. Generate email
         const appUrl = getAppUrl();
@@ -210,7 +229,10 @@ exports.sendApprovalConfirmation = onCall(
           throw error;
         }
 
-        throw new HttpsError("internal", `Failed to send confirmation: ${error.message}`);
+        throw new HttpsError(
+            "internal",
+            `Failed to send confirmation: ${error.message}`,
+        );
       }
     },
 );

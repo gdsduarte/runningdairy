@@ -1,19 +1,23 @@
+/* eslint-disable linebreak-style */
 module.exports = {
   env: {
     es6: true,
     node: true,
   },
   parserOptions: {
-    "ecmaVersion": 2018,
+    ecmaVersion: 2018,
   },
-  extends: [
-    "eslint:recommended",
-    "google",
-  ],
+  extends: ["eslint:recommended", "google"],
   rules: {
     "no-restricted-globals": ["error", "name", "length"],
     "prefer-arrow-callback": "error",
-    "quotes": ["error", "double", {"allowTemplateLiterals": true}],
+    "quotes": ["error", "double", { allowTemplateLiterals: true }],
+    "require-jsdoc": "off",
+    "max-len": ["error", { code: 120 }],
+    "object-curly-spacing": ["error", "always"],
+    "comma-dangle": ["error", "always-multiline"],
+    "no-unused-vars": ["warn", { args: "none" }],
+    "linebreak-style": ["error", "windows"],
   },
   overrides: [
     {

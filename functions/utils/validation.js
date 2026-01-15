@@ -1,4 +1,4 @@
-const {HttpsError} = require("firebase-functions/v2/https");
+const { HttpsError } = require("firebase-functions/v2/https");
 
 /**
  * Sanitize input string to prevent injection attacks

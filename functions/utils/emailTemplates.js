@@ -172,8 +172,6 @@ function getApprovalConfirmationTemplate(memberName, clubName, approvedBy, appUr
           <p>You can now:</p>
           <ul>
             <li>View and join club events</li>
-            <li>Connect with other members</li>
-            <li>Track your running progress</li>
             <li>Participate in club activities</li>
           </ul>
           

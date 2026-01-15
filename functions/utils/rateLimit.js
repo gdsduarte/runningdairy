@@ -1,4 +1,4 @@
-const {HttpsError} = require("firebase-functions/v2/https");
+const { HttpsError } = require("firebase-functions/v2/https");
 
 // Rate limiting cache (in production, use Redis or Firestore)
 const emailRateLimits = new Map();

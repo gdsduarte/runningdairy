@@ -100,6 +100,7 @@ function AdminPanel({ user, clubId, userRole }) {
   const [members, setMembers] = useState([]);
   const [joinRequests, setJoinRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [processingRequest, setProcessingRequest] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [alert, setAlert] = useState({ show: false, type: "", message: "" });
@@ -225,23 +226,29 @@ function AdminPanel({ user, clubId, userRole }) {
 
   const handleApproveJoinRequest = async (requestId, userId) => {
     try {
+      setProcessingRequest(requestId);
       await approveJoinRequest(requestId, userId, clubId);
-      showAlert("success", "Join request approved successfully!");
+      showAlert("success", "Join request approved! Confirmation email sent.");
       loadData();
     } catch (error) {
       console.error("Error approving join request:", error);
       showAlert("error", error.message || "Failed to approve join request");
+    } finally {
+      setProcessingRequest(null);
     }
   };
 
   const handleRejectJoinRequest = async (requestId) => {
     try {
+      setProcessingRequest(requestId);
       await rejectJoinRequest(requestId);
       showAlert("success", "Join request rejected");
       loadData();
     } catch (error) {
       console.error("Error rejecting join request:", error);
       showAlert("error", error.message || "Failed to reject join request");
+    } finally {
+      setProcessingRequest(null);
     }
   };
 
@@ -981,8 +988,13 @@ function AdminPanel({ user, clubId, userRole }) {
                                           size="small"
                                           onClick={() => handleApproveJoinRequest(request.id, request.userId)}
                                           color="success"
+                                          disabled={processingRequest === request.id}
                                         >
-                                          <Check fontSize="small" />
+                                          {processingRequest === request.id ? (
+                                            <CircularProgress size={16} color="success" />
+                                          ) : (
+                                            <Check fontSize="small" />
+                                          )}
                                         </IconButton>
                                       </Tooltip>
                                       <Tooltip title="Reject">
@@ -990,8 +1002,13 @@ function AdminPanel({ user, clubId, userRole }) {
                                           size="small"
                                           onClick={() => handleRejectJoinRequest(request.id)}
                                           color="error"
+                                          disabled={processingRequest === request.id}
                                         >
-                                          <Close fontSize="small" />
+                                          {processingRequest === request.id ? (
+                                            <CircularProgress size={16} color="error" />
+                                          ) : (
+                                            <Close fontSize="small" />
+                                          )}
                                         </IconButton>
                                       </Tooltip>
                                     </Box>
@@ -1047,8 +1064,13 @@ function AdminPanel({ user, clubId, userRole }) {
                                       size="small"
                                       onClick={() => handleApproveJoinRequest(request.id, request.userId)}
                                       color="success"
+                                      disabled={processingRequest === request.id}
                                     >
-                                      <Check fontSize="small" />
+                                      {processingRequest === request.id ? (
+                                        <CircularProgress size={16} color="success" />
+                                      ) : (
+                                        <Check fontSize="small" />
+                                      )}
                                     </IconButton>
                                   </Tooltip>
                                   <Tooltip title="Reject">
@@ -1056,8 +1078,13 @@ function AdminPanel({ user, clubId, userRole }) {
                                       size="small"
                                       onClick={() => handleRejectJoinRequest(request.id)}
                                       color="error"
+                                      disabled={processingRequest === request.id}
                                     >
-                                      <Close fontSize="small" />
+                                      {processingRequest === request.id ? (
+                                        <CircularProgress size={16} color="error" />
+                                      ) : (
+                                        <Close fontSize="small" />
+                                      )}
                                     </IconButton>
                                   </Tooltip>
                                 </TableCell>

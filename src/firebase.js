@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getFunctions } from "firebase/functions";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -34,6 +34,13 @@ console.log('✅ Firestore initialized for PRODUCTION');
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
+
+// Connect to Functions Emulator if in development
+if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_FUNCTIONS_EMULATOR === 'true') {
+  console.log('🔧 Connecting to Functions Emulator at localhost:5001');
+  connectFunctionsEmulator(functions, 'localhost', 5001);
+}
+
 export const googleProvider = new GoogleAuthProvider();
 
 export default app;

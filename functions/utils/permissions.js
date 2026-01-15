@@ -13,7 +13,7 @@ async function verifyClubAdmin(uid, clubId) {
     const userDoc = await admin.firestore().collection("users").doc(uid).get();
 
     if (!userDoc.exists) {
-      logger.warn("User not found", {uid});
+      logger.warn("User not found", { uid });
       return false;
     }
 
@@ -33,7 +33,7 @@ async function verifyClubAdmin(uid, clubId) {
 
     return userRole === "admin" || userRole === "moderator";
   } catch (error) {
-    logger.error("Error verifying club admin", {error: error.message});
+    logger.error("Error verifying club admin", { error: error.message });
     return false;
   }
 }
@@ -62,7 +62,10 @@ async function getClubAdminEmails(clubId) {
 
     return adminEmails;
   } catch (error) {
-    logger.error("Error getting admin emails", {error: error.message, clubId});
+    logger.error("Error getting admin emails", {
+      error: error.message,
+      clubId,
+    });
     return [];
   }
 }

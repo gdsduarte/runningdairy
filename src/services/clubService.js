@@ -1,4 +1,4 @@
-import { db, auth } from '../firebase';
+import { db, auth, functions } from '../firebase';
 import { 
   collection, 
   doc, 
@@ -13,6 +13,7 @@ import {
   orderBy
 } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
 
 /**
  * Generate a unique club ID
@@ -238,6 +239,18 @@ export const requestToJoinClub = async (userId, clubId) => {
       createdAt: serverTimestamp(),
     });
 
+    // Call Cloud Function to send email notification to admins (non-blocking)
+    const sendJoinRequestNotification = httpsCallable(functions, 'sendJoinRequestNotification');
+    sendJoinRequestNotification({
+      clubId,
+      userName: userSnap.data().displayName || userSnap.data().email,
+      userEmail: userSnap.data().email,
+    }).then(() => {
+      console.log('Join request notification sent to admins');
+    }).catch((emailError) => {
+      console.error('Failed to send email notification:', emailError);
+    });
+
     return { success: true };
   } catch (error) {
     console.error('Error requesting to join club:', error);
@@ -312,6 +325,11 @@ export const getClubJoinRequests = async (clubId) => {
  */
 export const approveJoinRequest = async (requestId, userId, clubId) => {
   try {
+    // Get join request data before updating it
+    const requestRef = doc(db, 'joinRequests', requestId);
+    const requestSnap = await getDoc(requestRef);
+    const requestData = requestSnap.data();
+
     // Get user document to check existing data
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
@@ -326,10 +344,21 @@ export const approveJoinRequest = async (requestId, userId, clubId) => {
     });
 
     // Update join request status
-    const requestRef = doc(db, 'joinRequests', requestId);
     await updateDoc(requestRef, {
       status: 'approved',
       processedAt: serverTimestamp()
+    });
+
+    // Call Cloud Function to send approval confirmation email to the new member (non-blocking)
+    const sendApprovalConfirmation = httpsCallable(functions, 'sendApprovalConfirmation');
+    sendApprovalConfirmation({
+      clubId,
+      memberEmail: requestData.userEmail,
+      memberName: requestData.userName,
+    }).then(() => {
+      console.log('Approval confirmation email sent to member');
+    }).catch((emailError) => {
+      console.error('Failed to send approval confirmation email:', emailError);
     });
 
     return { success: true };

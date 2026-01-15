@@ -579,6 +579,7 @@ const ClubBrowser = () => {
                   variant="contained"
                   onClick={() => handleRequestToJoin(selectedClub.id)}
                   disabled={submitting}
+                  startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
                   sx={{
                     borderRadius: 1,
                     textTransform: "none",
@@ -587,7 +588,7 @@ const ClubBrowser = () => {
                     boxShadow: 2,
                   }}
                 >
-                  {submitting ? "Requesting..." : "Request to Join"}
+                  {submitting ? "Sending..." : "Request to Join"}
                 </Button>
               )}
             </DialogActions>
