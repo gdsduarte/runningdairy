@@ -225,3 +225,60 @@ export const canEditEvent = async (event, user) => {
   
   return false;
 };
+
+// Wishlist functions
+export const addToWishlist = async (userId, eventId) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      return { success: false, error: 'User not found' };
+    }
+    
+    const currentWishlist = userDoc.data().wishlist || [];
+    
+    // Check if event is already in wishlist
+    if (currentWishlist.includes(eventId)) {
+      return { success: true, message: 'Event already in wishlist' };
+    }
+    
+    // Add event to wishlist array
+    await setDoc(userRef, {
+      wishlist: [...currentWishlist, eventId]
+    }, { merge: true });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error adding to wishlist:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const removeFromWishlist = async (userId, eventId) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      return { success: false, error: 'User not found' };
+    }
+    
+    const currentWishlist = userDoc.data().wishlist || [];
+    const updatedWishlist = currentWishlist.filter(id => id !== eventId);
+    
+    await setDoc(userRef, {
+      wishlist: updatedWishlist
+    }, { merge: true });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing from wishlist:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const isEventWishlisted = (userProfile, eventId) => {
+  if (!userProfile || !userProfile.wishlist) return false;
+  return userProfile.wishlist.includes(eventId);
+};

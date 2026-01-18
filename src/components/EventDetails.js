@@ -4,6 +4,9 @@ import {
   rsvpToEvent,
   deleteEvent,
   canEditEvent,
+  addToWishlist,
+  removeFromWishlist,
+  isEventWishlisted,
 } from "../services";
 import {
   Box,
@@ -37,9 +40,11 @@ import {
   OpenInNew,
   ArrowBack,
   MoreHoriz,
+  Favorite,
+  FavoriteBorder,
 } from "@mui/icons-material";
 
-function EventDetails({ event, onClose, user, onEditEvent }) {
+function EventDetails({ event, onClose, user, userProfile, onEditEvent }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [loading, setLoading] = useState(false);
@@ -48,7 +53,39 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
   const [canEdit, setCanEdit] = useState(false);
   const [showAllAttendees, setShowAllAttendees] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [isWishlisted, setIsWishlisted] = useState(false);
   const menuOpen = Boolean(anchorEl);
+
+  const handleWishlistToggle = async () => {
+    if (!user) {
+      alert("Please sign in to add events to your wishlist");
+      return;
+    }
+
+    try {
+      if (isWishlisted) {
+        const result = await removeFromWishlist(user.uid, event.id);
+        if (result.success) {
+          setIsWishlisted(false);
+        }
+      } else {
+        const result = await addToWishlist(user.uid, event.id);
+        if (result.success) {
+          setIsWishlisted(true);
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling wishlist:", err);
+      alert("Failed to update wishlist. Please try again.");
+    }
+  };
+
+  // Check if event is wishlisted on mount
+  useEffect(() => {
+    if (userProfile && event?.id) {
+      setIsWishlisted(isEventWishlisted(userProfile, event.id));
+    }
+  }, [userProfile, event?.id]);
 
   // Real-time listener for event updates
   useEffect(() => {
@@ -167,7 +204,7 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
           height: isMobile ? "100%" : "auto",
           maxHeight: isMobile ? "100%" : "90vh",
           m: isMobile ? 0 : 2,
-          borderRadius: isMobile ? 0 : 2,
+          borderRadius: isMobile ? 0 : 1,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -189,24 +226,10 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
             color: "white",
             p: isMobile ? 2 : 3,
-            pb: isMobile ? 8 : 3,
+            pb: 5,
             overflow: "hidden",
           }}
         >
-          {/* Background pattern */}
-          <Box
-            sx={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundImage:
-                "radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)",
-              pointerEvents: "none",
-            }}
-          />
-
           {/* Header Content */}
           <Box
             sx={{
@@ -244,6 +267,27 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
               )}
             </Box>
             <Box sx={{ display: "flex", gap: 1 }}>
+              {user && (
+                <IconButton
+                  onClick={handleWishlistToggle}
+                  sx={{
+                    color: "white",
+                    bgcolor: "rgba(255,255,255,0.15)",
+                    backdropFilter: "blur(10px)",
+                    "&:hover": { bgcolor: "rgba(255,255,255,0.25)" },
+                  }}
+                >
+                  {isWishlisted ? (
+                    <Favorite
+                      sx={{
+                        color: "#f43f5e",
+                      }}
+                    />
+                  ) : (
+                    <FavoriteBorder />
+                  )}
+                </IconButton>
+              )}
               {canEdit && (
                 <IconButton
                   onClick={(e) => setAnchorEl(e.currentTarget)}
@@ -320,7 +364,7 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
         <Box
           sx={{
             position: "relative",
-            mt: isMobile ? -5 : 0,
+            mt: -3,
             mx: isMobile ? 2 : 3,
             mb: 2,
             display: "grid",
@@ -505,6 +549,40 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
             </Typography>
           </Box>
         </Box>
+        {liveEvent.description && (
+          <Box
+            sx={{
+              mx: isMobile ? 2 : 3,
+              mb: 2,
+              p: 2,
+              bgcolor: "background.default",
+              borderRadius: 1,
+              border: 1,
+              borderColor: "divider",
+              overflowWrap: "break-word",
+            }}
+          >
+            <Typography
+              variant="subtitle2"
+              color="primary"
+              fontWeight={700}
+              sx={{ mb: 1 }}
+            >
+              About this event
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                maxHeight: "4.5em",
+                lineHeight: "1.5em",
+                overflowY: "auto",
+              }}
+            >
+              {liveEvent.description}
+            </Typography>
+          </Box>
+        )}
         <Box
           sx={{
             display: "flex",
@@ -538,31 +616,6 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
             pb: isMobile ? 2 : 3,
           }}
         >
-          {liveEvent.description && (
-            <Box
-              sx={{
-                mb: 3,
-                p: 2,
-                bgcolor: "background.default",
-                borderRadius: 1,
-                border: 1,
-                borderColor: "divider",
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                color="primary"
-                fontWeight={700}
-                sx={{ mb: 1 }}
-              >
-                About this event
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {liveEvent.description}
-              </Typography>
-            </Box>
-          )}
-
           {/* Attendees Section */}
           <Box sx={{ mb: 3 }}>
             {liveEvent.attendees && liveEvent.attendees.length > 0 ? (
@@ -759,22 +812,24 @@ function EventDetails({ event, onClose, user, onEditEvent }) {
             </>
           )}
 
-          <Button
-            variant="outlined"
-            fullWidth
-            size="large"
-            endIcon={<OpenInNew />}
-            href={liveEvent.signupLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{
-              borderRadius: 1,
-              py: 1.5,
-              fontWeight: 600,
-            }}
-          >
-            Official Registration
-          </Button>
+          {liveEvent.signupLink && (
+            <Button
+              variant="outlined"
+              fullWidth
+              size="large"
+              endIcon={<OpenInNew />}
+              href={liveEvent.signupLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                borderRadius: 1,
+                py: 1.5,
+                fontWeight: 600,
+              }}
+            >
+              Official Registration
+            </Button>
+          )}
         </Box>
       </Box>
     </Dialog>

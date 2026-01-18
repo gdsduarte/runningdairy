@@ -221,6 +221,7 @@ function App() {
             event={selectedEvent}
             onClose={() => setSelectedEvent(null)}
             user={user}
+            userProfile={userProfile}
             onEditEvent={handleEditEvent}
           />
         )}

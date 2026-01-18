@@ -16,6 +16,7 @@ import {
   CircularProgress,
   useMediaQuery,
   useTheme,
+  Divider,
 } from "@mui/material";
 import {
   ChevronLeft,
@@ -29,8 +30,12 @@ import {
   People,
   Close,
   Repeat,
+  EventAvailable,
+  Create,
+  Favorite,
 } from "@mui/icons-material";
 import { responsiveSpacing, responsiveSizing } from "../utils/responsive";
+import EventStats from "./EventStats";
 
 function EventCalendar({ onEventClick, user, onAddEvent }) {
   const dispatch = useDispatch();
@@ -53,6 +58,8 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
   const [mobileSelectedDay, setMobileSelectedDay] = useState(null);
   const [dialogExpanded, setDialogExpanded] = useState(false);
   const [dragStart, setDragStart] = useState(null);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [selectedStatType, setSelectedStatType] = useState(null);
 
   // Sync local state with Redux state
   useEffect(() => {
@@ -125,9 +132,90 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
   const isPastDate = (day) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const selectedDate = getSelectedDate(day);
+    selectedDate.setHours(0, 0, 0, 0);
+    return selectedDate < today;
+  };
+
+  // Calculate month stats
+  const getMonthStats = () => {
     const { year, month } = getDaysInMonth(currentMonth);
-    const checkDate = new Date(year, month, day);
-    return checkDate < today;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const monthEvents = events.filter((event) => {
+      return (
+        event.date.getMonth() === month && event.date.getFullYear() === year
+      );
+    });
+
+    const totalEvents = monthEvents.length;
+    const attendingEvents = monthEvents.filter((event) =>
+      event.attendees?.some((attendee) => attendee.uid === user?.uid)
+    ).length;
+    const attendedEvents = monthEvents.filter(
+      (event) =>
+        event.date < now &&
+        event.attendees?.some((attendee) => attendee.uid === user?.uid)
+    ).length;
+    const createdEvents = monthEvents.filter(
+      (event) => event.createdBy === user?.uid
+    ).length;
+    const wishlistEvents = monthEvents.filter((event) =>
+      userProfile?.wishlist?.includes(event.id)
+    ).length;
+
+    return {
+      totalEvents,
+      attendingEvents,
+      attendedEvents,
+      createdEvents,
+      wishlistEvents,
+    };
+  };
+
+  // Get events for selected stat type
+  const getStatEvents = (statType) => {
+    const { year, month } = getDaysInMonth(currentMonth);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const monthEvents = events.filter((event) => {
+      return (
+        event.date.getMonth() === month && event.date.getFullYear() === year
+      );
+    });
+
+    switch (statType) {
+      case "attending":
+        return monthEvents.filter((event) =>
+          event.attendees?.some((attendee) => attendee.uid === user?.uid)
+        );
+      case "attended":
+        return monthEvents.filter(
+          (event) =>
+            event.date < now &&
+            event.attendees?.some((attendee) => attendee.uid === user?.uid)
+        );
+      case "created":
+        return monthEvents.filter((event) => event.createdBy === user?.uid);
+      case "wishlisted":
+        return monthEvents.filter((event) =>
+          userProfile?.wishlist?.includes(event.id)
+        );
+      default:
+        return [];
+    }
+  };
+
+  const handleStatClick = (statType) => {
+    setSelectedStatType(statType);
+    setStatsDialogOpen(true);
+  };
+
+  const handleStatsDialogClose = () => {
+    setStatsDialogOpen(false);
+    setSelectedStatType(null);
   };
 
   const handleDayClick = (day, dayEvents) => {
@@ -153,8 +241,8 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
             textAlign: "center",
             fontWeight: 700,
             color: "text.secondary",
-            py: { xs: 0.5, sm: 1 },
-            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+            py: 1,
+            fontSize: { xs: "1rem" },
           }}
         >
           {day}
@@ -197,7 +285,7 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
           <Box
             sx={{
               fontWeight: 400,
-              fontSize: { xs: "15px", sm: "14px" },
+              fontSize: { xs: "1rem" },
               width: "36px",
               height: "36px",
               display: "flex",
@@ -209,10 +297,10 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                 today && day === selectedDay
                   ? "#0066ff"
                   : today
-                  ? "#0066ff"
-                  : day === selectedDay && !isMobile
-                  ? "#e8e8e8"
-                  : "transparent",
+                    ? "#0066ff"
+                    : day === selectedDay && !isMobile
+                      ? "#e8e8e8"
+                      : "transparent",
               color: today ? "white" : "#666",
             }}
           >
@@ -228,8 +316,8 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                     ? "white"
                     : "#F59E0B"
                   : today
-                  ? "white"
-                  : "#0066ff",
+                    ? "white"
+                    : "#0066ff",
                 borderRadius: "50%",
                 position: "absolute",
                 bottom: 4,
@@ -265,169 +353,856 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
     return (
       <Box
         sx={{
-          py: 2,
+          height: "100%",
+          overflowY: "auto",
+          py: { xs: 2, md: 0 },
           px: 2,
-          //bgcolor: "green",
+          bgcolor: "white",
         }}
       >
         {upcomingEvents.length > 0 && (
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h3" sx={{ mb: 2 }}>
-              Upcoming Events
-            </Typography>
-            {upcomingEvents.map((event) => (
-              <Card
-                key={event.id}
-                onClick={() => onEventClick(event)}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                mb: 2,
+              }}
+            >
+              <Box
                 sx={{
-                  mb: 2,
-                  cursor: "pointer",
-                  transition: "transform 0.2s, box-shadow 0.2s",
-                  "&:hover": {
-                    transform: "translateY(-4px)",
-                    boxShadow: 4,
-                  },
+                  width: 4,
+                  height: 24,
+                  bgcolor: theme.palette.primary.main,
+                  borderRadius: 1,
+                }}
+              />
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "1.125rem",
                 }}
               >
-                <CardContent
-                  sx={{ display: "flex", gap: 2, alignItems: "center" }}
+                Upcoming Events
+              </Typography>
+              {/* <Chip
+                label={upcomingEvents.length}
+                size="small"
+                sx={{
+                  bgcolor: theme.palette.primary.main,
+                  color: "white",
+                  fontWeight: 600,
+                  height: 24,
+                }}
+              /> */}
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.5,
+              }}
+            >
+              {upcomingEvents.map((event) => (
+                <Card
+                  key={event.id}
+                  onClick={() => onEventClick(event)}
+                  sx={{
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    border: "1px solid",
+                    borderColor: "rgba(0, 0, 0, 0.08)",
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: 3,
+                      borderColor: theme.palette.primary.main,
+                    },
+                  }}
                 >
-                  <Box
-                    sx={{
-                      bgcolor: "primary.main",
-                      color: "white",
-                      borderRadius: 1,
-                      p: 2,
-                      minWidth: 70,
-                      textAlign: "center",
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ color: "white" }}>
-                      {event.date.toLocaleDateString("en-US", {
-                        month: "short",
-                      })}
-                    </Typography>
-                    <Typography variant="h3" sx={{ color: "white" }}>
-                      {event.date.getDate()}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="h3" gutterBottom>
-                      {event.name}
-                    </Typography>
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                      <Chip
-                        icon={<LocationOn />}
-                        label={event.location}
-                        size="small"
-                      />
-                      <Chip
-                        icon={<DirectionsRun />}
-                        label={event.distance}
-                        size="small"
-                      />
-                      <Chip
-                        icon={<Schedule />}
-                        label={event.date.toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                        size="small"
-                      />
-                      <Chip
-                        icon={<People />}
-                        label={`${event.attendees?.length || 0} attending`}
-                        size="small"
-                      />
+                  <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "flex-start",
+                        alignItems: "center",
+                        gap: 1.5,
+                      }}
+                    >
+                      {/* Date Badge */}
+                      <Box
+                        sx={{
+                          minWidth: 90,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          bgcolor: "rgba(99, 102, 241, 0.1)",
+                          borderRadius: 1,
+                          p: 1,
+                          border: "1px solid",
+                          borderColor: "rgba(99, 102, 241, 0.2)",
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            color: theme.palette.primary.main,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {event.date.toLocaleDateString("en-US", {
+                            month: "short",
+                          })}
+                        </Typography>
+                        <Typography
+                          variant="h5"
+                          sx={{
+                            fontSize: "1.75rem",
+                            fontWeight: 700,
+                            lineHeight: 1,
+                            color: theme.palette.primary.main,
+                          }}
+                        >
+                          {event.date.getDate()}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {event.date.toLocaleDateString("en-US", {
+                            weekday: "short",
+                          })}
+                        </Typography>
+                      </Box>
+
+                      {/* Event Details */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              fontWeight: 600,
+                              mb: 0.5,
+                              fontSize: "1rem",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                            }}
+                          >
+                            {event.name}
+                          </Typography>
+                          <Box sx={{ display: "flex", gap: 0.5 }}>
+                            {userProfile?.wishlist?.includes(event.id) && (
+                              <Favorite
+                                sx={{
+                                  fontSize: 18,
+                                  color: "#f43f5e",
+                                }}
+                              />
+                            )}
+                            {event.isRecurring && (
+                              <Repeat
+                                sx={{
+                                  fontSize: 18,
+                                  color: "text.secondary",
+                                }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 0.5,
+                            mb: 1,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                            }}
+                          >
+                            <Schedule
+                              sx={{ fontSize: 16, color: "text.secondary" }}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: "text.secondary",
+                                fontSize: "0.875rem",
+                                flex: 1,
+                              }}
+                            >
+                              {event.date.toLocaleTimeString("en-US", {
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
+                            </Typography>
+                          </Box>
+
+                          {event.location && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
+                              <LocationOn
+                                sx={{ fontSize: 16, color: "text.secondary" }}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "text.secondary",
+                                  fontSize: "0.875rem",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  flex: 1,
+                                }}
+                              >
+                                {event.location}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: 1,
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                    bgcolor: "rgba(16, 185, 129, 0.08)",
+                                    px: 1,
+                                    py: 0.5,
+                                    borderRadius: 1,
+                                  }}
+                                >
+                                  <People
+                                    sx={{
+                                      fontSize: 14,
+                                      color: "#10B981",
+                                    }}
+                                  />
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      fontWeight: 600,
+                                      color: "#10B981",
+                                      fontSize: "0.75rem",
+                                    }}
+                                  >
+                                    {event.attendees?.length || 0}{" "}
+                                    {/* attending */}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+                          )}
+
+                          {event.activityType && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
+                              <DirectionsRun
+                                sx={{ fontSize: 16, color: "text.secondary" }}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "text.secondary",
+                                  fontSize: "0.875rem",
+                                }}
+                              >
+                                {event.activityType}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
                     </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
           </Box>
         )}
 
         {pastEvents.length > 0 && (
           <Box>
-            <Typography variant="h3" sx={{ mb: 2, color: "text.secondary" }}>
-              Past Events
-            </Typography>
-            {pastEvents.map((event) => (
-              <Card
-                key={event.id}
-                onClick={() => onEventClick(event)}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                mb: 2,
+              }}
+            >
+              <Box
                 sx={{
-                  mb: 2,
-                  cursor: "pointer",
-                  opacity: 0.7,
-                  transition: "transform 0.2s, box-shadow 0.2s, opacity 0.2s",
-                  "&:hover": {
-                    transform: "translateY(-4px)",
-                    boxShadow: 4,
-                    opacity: 1,
-                  },
+                  width: 4,
+                  height: 24,
+                  bgcolor: "text.secondary",
+                  borderRadius: 1,
+                }}
+              />
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "1.125rem",
+                  color: "text.secondary",
                 }}
               >
-                <CardContent
-                  sx={{ display: "flex", gap: 2, alignItems: "center" }}
+                Past Events
+              </Typography>
+              <Chip
+                label={pastEvents.length}
+                size="small"
+                sx={{
+                  bgcolor: "rgba(0, 0, 0, 0.08)",
+                  color: "text.secondary",
+                  fontWeight: 600,
+                  height: 24,
+                }}
+              />
+            </Box>
+
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              {pastEvents.map((event) => (
+                <Card
+                  key={event.id}
+                  onClick={() => onEventClick(event)}
+                  sx={{
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    border: "1px solid",
+                    borderColor: "rgba(0, 0, 0, 0.08)",
+                    opacity: 0.75,
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: 2,
+                      opacity: 1,
+                    },
+                  }}
                 >
-                  <Box
-                    sx={{
-                      bgcolor: "text.secondary",
-                      color: "white",
-                      borderRadius: 1,
-                      p: 2,
-                      minWidth: 70,
-                      textAlign: "center",
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ color: "white" }}>
-                      {event.date.toLocaleDateString("en-US", {
-                        month: "short",
-                      })}
-                    </Typography>
-                    <Typography variant="h3" sx={{ color: "white" }}>
-                      {event.date.getDate()}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="h3" gutterBottom>
-                      {event.name}
-                    </Typography>
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                      <Chip
-                        icon={<LocationOn />}
-                        label={event.location}
-                        size="small"
-                      />
-                      <Chip
-                        icon={<DirectionsRun />}
-                        label={event.distance}
-                        size="small"
-                      />
-                      <Chip
-                        icon={<People />}
-                        label={`${event.attendees?.length || 0} attended`}
-                        size="small"
-                      />
+                  <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 1.5,
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      {/* Date Badge */}
+                      <Box
+                        sx={{
+                          minWidth: 56,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          bgcolor: "rgba(0, 0, 0, 0.04)",
+                          borderRadius: 1.5,
+                          p: 1,
+                          border: "1px solid",
+                          borderColor: "rgba(0, 0, 0, 0.08)",
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: "0.65rem",
+                            fontWeight: 600,
+                            color: "text.secondary",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {event.date.toLocaleDateString("en-US", {
+                            month: "short",
+                          })}
+                        </Typography>
+                        <Typography
+                          variant="h5"
+                          sx={{
+                            fontSize: "1.5rem",
+                            fontWeight: 700,
+                            lineHeight: 1,
+                            color: "text.secondary",
+                          }}
+                        >
+                          {event.date.getDate()}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: "0.625rem",
+                            color: "text.disabled",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {event.date.toLocaleDateString("en-US", {
+                            weekday: "short",
+                          })}
+                        </Typography>
+                      </Box>
+
+                      {/* Event Details */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            fontWeight: 600,
+                            mb: 0.5,
+                            fontSize: "1rem",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {event.name}
+                        </Typography>
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 0.5,
+                            mb: 1,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                            }}
+                          >
+                            <Schedule
+                              sx={{ fontSize: 16, color: "text.secondary" }}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: "text.secondary",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {event.date.toLocaleTimeString("en-US", {
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
+                            </Typography>
+                          </Box>
+
+                          {event.location && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
+                              <LocationOn
+                                sx={{ fontSize: 16, color: "text.secondary" }}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "text.secondary",
+                                  fontSize: "0.875rem",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {event.location}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          {event.activityType && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
+                              <DirectionsRun
+                                sx={{ fontSize: 16, color: "text.secondary" }}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "text.secondary",
+                                  fontSize: "0.875rem",
+                                }}
+                              >
+                                {event.activityType}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+
+                        {/* Bottom Info */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 1,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                              bgcolor: "rgba(0, 0, 0, 0.04)",
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: 1,
+                            }}
+                          >
+                            <People
+                              sx={{
+                                fontSize: 14,
+                                color: "text.secondary",
+                              }}
+                            />
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: 600,
+                                color: "text.secondary",
+                                fontSize: "0.75rem",
+                              }}
+                            >
+                              {event.attendees?.length || 0} attended
+                            </Typography>
+                          </Box>
+
+                          <Box sx={{ display: "flex", gap: 0.5 }}>
+                            {userProfile?.wishlist?.includes(event.id) && (
+                              <Favorite
+                                sx={{
+                                  fontSize: 18,
+                                  color: "#f43f5e",
+                                }}
+                              />
+                            )}
+                            {event.isRecurring && (
+                              <Repeat
+                                sx={{
+                                  fontSize: 18,
+                                  color: "text.secondary",
+                                }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                      </Box>
                     </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
           </Box>
         )}
 
-        {events.length === 0 && (
+        {monthEvents.length === 0 && (
           <Box sx={{ textAlign: "center", py: 8 }}>
-            <DirectionsRun
-              sx={{ fontSize: 64, color: "text.disabled", mb: 2 }}
-            />
-            <Typography color="text.secondary">
-              No events scheduled yet
+            <Box
+              sx={{
+                width: 120,
+                height: 120,
+                borderRadius: "50%",
+                bgcolor: "rgba(99, 102, 241, 0.08)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mx: "auto",
+                mb: 2,
+              }}
+            >
+              <DirectionsRun
+                sx={{ fontSize: 64, color: theme.palette.primary.main }}
+              />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+              No events this month
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Check back later or create a new event
             </Typography>
           </Box>
         )}
+      </Box>
+    );
+  };
+
+  const renderStats = () => {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          gap: 0.75,
+          py: 1,
+          px: 2,
+        }}
+      >
+        {/* Attending Events */}
+        <Box
+          onClick={() => handleStatClick("attending")}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            p: 0.75,
+            //bgcolor: "rgba(16, 185, 129, 0.08)",
+            bgcolor: "white",
+            borderRadius: 1,
+            border: "1px solid",
+            borderColor: "rgba(16, 185, 129, 0.2)",
+            flexDirection: "column",
+            cursor: "pointer",
+            transition: "all 0.2s",
+            "&:hover": {
+              bgcolor: "rgba(16, 185, 129, 0.08)",
+              transform: "translateY(-2px)",
+              boxShadow: 1,
+            },
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 0.5,
+            }}
+          >
+            <EventAvailable sx={{ color: "#10B981", fontSize: 14 }} />
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontSize: "0.625rem",
+                display: "block",
+                lineHeight: 1.2,
+              }}
+            >
+              Attending
+            </Typography>
+          </Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 700,
+              fontSize: "1rem",
+              lineHeight: 1.2,
+            }}
+          >
+            {getMonthStats().attendingEvents}
+          </Typography>
+        </Box>
+
+        {/* Attended Events */}
+        <Box
+          onClick={() => handleStatClick("attended")}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            p: 0.75,
+            //bgcolor: "rgba(139, 92, 246, 0.08)",
+            bgcolor: "white",
+            borderRadius: 1,
+            border: "1px solid",
+            borderColor: "rgba(139, 92, 246, 0.2)",
+            cursor: "pointer",
+            transition: "all 0.2s",
+            "&:hover": {
+              bgcolor: "rgba(139, 92, 246, 0.08)",
+              transform: "translateY(-2px)",
+              boxShadow: 1,
+            },
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 0.5,
+            }}
+          >
+            <EventAvailable sx={{ color: "#8B5CF6", fontSize: 14 }} />
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontSize: "0.625rem",
+                display: "block",
+                lineHeight: 1.2,
+              }}
+            >
+              Attended
+            </Typography>
+          </Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 700,
+              fontSize: "1rem",
+              lineHeight: 1.2,
+            }}
+          >
+            {getMonthStats().attendedEvents}
+          </Typography>
+        </Box>
+
+        {/* Created Events */}
+        <Box
+          onClick={() => handleStatClick("created")}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            p: 0.75,
+            //bgcolor: "rgba(245, 158, 11, 0.08)",
+            bgcolor: "white",
+            borderRadius: 1,
+            border: "1px solid",
+            borderColor: "rgba(245, 158, 11, 0.2)",
+            flexDirection: "column",
+            cursor: "pointer",
+            transition: "all 0.2s",
+            "&:hover": {
+              bgcolor: "rgba(245, 158, 11, 0.08)",
+              transform: "translateY(-2px)",
+              boxShadow: 1,
+            },
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 0.5,
+            }}
+          >
+            <Create sx={{ color: "#F59E0B", fontSize: 14 }} />
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontSize: "0.625rem",
+                display: "block",
+                lineHeight: 1.2,
+              }}
+            >
+              Created
+            </Typography>
+          </Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 700,
+              fontSize: "1rem",
+              lineHeight: 1.2,
+            }}
+          >
+            {getMonthStats().createdEvents}
+          </Typography>
+        </Box>
+
+        {/* Wishlisted Events */}
+        <Box
+          onClick={() => handleStatClick("wishlisted")}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            p: 0.75,
+            //bgcolor: "rgba(244, 63, 94, 0.08)",
+            bgcolor: "white",
+            borderRadius: 1,
+            border: "1px solid",
+            borderColor: "rgba(244, 63, 94, 0.2)",
+            cursor: "pointer",
+            transition: "all 0.2s",
+            "&:hover": {
+              bgcolor: "rgba(244, 63, 94, 0.08)",
+              transform: "translateY(-2px)",
+              boxShadow: 1,
+            },
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 0.5,
+            }}
+          >
+            <Favorite sx={{ color: "#f43f5e", fontSize: 14 }} />
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontSize: "0.625rem",
+                display: "block",
+                lineHeight: 1.2,
+              }}
+            >
+              Wishlisted
+            </Typography>
+          </Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 700,
+              fontSize: "1rem",
+              lineHeight: 1.2,
+            }}
+          >
+            {getMonthStats().wishlistEvents}
+          </Typography>
+        </Box>
       </Box>
     );
   };
@@ -455,11 +1230,11 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
       sx={{
         display: "flex",
         width: isMobile ? "100%" : "80%",
-        height: isMobile ? "auto" : "calc(100vh - 64px)",
-        bgcolor: "background.default",
+        height: isMobile ? "100%" : "calc(100vh - 64px)",
+        bgcolor: "background.paper",
         justifyContent: "center",
         overflow: "hidden",
-        boxShadow: 3,
+        boxShadow: isMobile ? "none" : 3,
         mx: "auto",
         my: isMobile ? 0 : 4,
       }}
@@ -634,7 +1409,6 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
         sx={{
           flex: 1,
           overflow: "hidden",
-          bgcolor: "background.default",
           display: "flex",
           flexDirection: "column",
         }}
@@ -645,6 +1419,8 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
             flex: 1,
             display: "flex",
             flexDirection: "column",
+            overflow: "hidden",
+            minHeight: 0,
           }}
         >
           {/* Mobile: Month Navigation at Top */}
@@ -652,82 +1428,117 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
             <Box
               sx={{
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                px: 2,
-                py: 2,
-                bgcolor: "background.paper",
+                flexDirection: "column",
+                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
               }}
             >
-              <IconButton
-                onClick={() => {
-                  const newDate = new Date(currentMonth);
-                  newDate.setMonth(newDate.getMonth() - 1);
-                  setCurrentMonth(newDate);
-                  dispatch(
-                    setSelectedMonth({
-                      year: newDate.getFullYear(),
-                      month: newDate.getMonth(),
-                    })
-                  );
+              {/* Month Navigation */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  px: 2,
+                  py: 2,
+                  color: "white",
                 }}
-                size="small"
               >
-                <ChevronLeft />
-              </IconButton>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                {currentMonth.toLocaleDateString("en-US", {
-                  month: "long",
-                  year: "numeric",
-                })}
-              </Typography>
-              <IconButton
-                onClick={() => {
-                  const newDate = new Date(currentMonth);
-                  newDate.setMonth(newDate.getMonth() + 1);
-                  setCurrentMonth(newDate);
-                  dispatch(
-                    setSelectedMonth({
-                      year: newDate.getFullYear(),
-                      month: newDate.getMonth(),
-                    })
-                  );
-                }}
-                size="small"
-              >
-                <ChevronRight />
-              </IconButton>
-            </Box>
-          )}
+                <IconButton
+                  onClick={() => {
+                    const newDate = new Date(currentMonth);
+                    newDate.setMonth(newDate.getMonth() - 1);
+                    setCurrentMonth(newDate);
+                    dispatch(
+                      setSelectedMonth({
+                        year: newDate.getFullYear(),
+                        month: newDate.getMonth(),
+                      })
+                    );
+                  }}
+                  size="small"
+                  sx={{ color: "white" }}
+                >
+                  <ChevronLeft />
+                </IconButton>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {currentMonth.toLocaleDateString("en-US", {
+                      month: "long",
+                      year: "numeric",
+                    })}
+                    <Chip
+                      label={`${getMonthStats().totalEvents} events`}
+                      size="small"
+                      sx={{
+                        bgcolor: "rgba(255,255,255,0.25)",
+                        position: "absolute",
+                        color: "white",
+                        fontWeight: 600,
+                        fontSize: "0.75rem",
+                        height: 18,
+                        ml: 0.5,
+                        mt: -1,
+                      }}
+                    />
+                  </Typography>
+                </Box>
+                <IconButton
+                  onClick={() => {
+                    const newDate = new Date(currentMonth);
+                    newDate.setMonth(newDate.getMonth() + 1);
+                    setCurrentMonth(newDate);
+                    dispatch(
+                      setSelectedMonth({
+                        year: newDate.getFullYear(),
+                        month: newDate.getMonth(),
+                      })
+                    );
+                  }}
+                  size="small"
+                  sx={{ color: "white" }}
+                >
+                  <ChevronRight />
+                </IconButton>
+              </Box>
 
-          {/* Mobile: Toggle Buttons */}
-          {isMobile && (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                px: 2,
-                pb: 2,
-                bgcolor: "background.paper",
-              }}
-            >
-              <ToggleButtonGroup
-                value={view}
-                exclusive
-                onChange={(e, newView) => newView && setView(newView)}
-                size="small"
-                fullWidth
-                sx={{ maxWidth: 400 }}
+              {/* Toggle View */}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  px: 2,
+                  pb: 1,
+                }}
               >
-                <ToggleButton value="month">
-                  <CalendarToday fontSize="small" sx={{ mr: 1 }} />
-                  Calendar
-                </ToggleButton>
-                <ToggleButton value="list">
-                  <ViewList fontSize="small" sx={{ mr: 1 }} />
-                  List
-                </ToggleButton>
-              </ToggleButtonGroup>
+                <ToggleButtonGroup
+                  value={view}
+                  exclusive
+                  onChange={(e, newView) => newView && setView(newView)}
+                  size="small"
+                  fullWidth
+                  sx={{ maxWidth: 400, bgcolor: "white" }}
+                >
+                  <ToggleButton value="month">
+                    <CalendarToday fontSize="small" sx={{ mr: 1 }} />
+                    Calendar
+                  </ToggleButton>
+                  <ToggleButton value="list">
+                    <ViewList fontSize="small" sx={{ mr: 1 }} />
+                    List
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
+              {isMobile && (
+                /* view !== "month" && */ <Box
+                  sx={{
+                    borderBottom: "2px solid",
+                    borderColor: "rgba(0, 0, 0, 0.08)",
+                  }}
+                >
+                  {renderStats()}
+                </Box>
+              )}
             </Box>
           )}
 
@@ -868,23 +1679,59 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
 
           {/* Calendar Grid or List */}
           {view === "month" ? (
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(7, 1fr)",
-                gap: { xs: 0, sm: 0.5 },
-                overflow: "auto",
-                px: isMobile ? 2 : 0,
-                pb: 2,
-                borderBottom: isMobile ? "1px solid #e0e0e0" : "none",
-                alignContent: "start",
-                minHeight: 0,
-              }}
-            >
-              {renderCalendarView()}
-            </Box>
+            <>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(7, 1fr)",
+                  gap: { xs: 0, sm: 0.5 },
+                  overflow: "auto",
+                  px: isMobile ? 1 : 0,
+                  alignContent: "start",
+                }}
+              >
+                {renderCalendarView()}
+              </Box>
+              {isMobile && <Divider sx={{ mt: 2, mx: 2 }} />}
+              {/* Month Summary Stats - Mobile Only */}
+              {/* {isMobile && (
+                <Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.75,
+                      px: 2,
+                      pt: 2,
+                      pb: 1,
+                    }}
+                  >
+                    <TrendingUp
+                      sx={{
+                        color: theme.palette.primary.main,
+                        fontSize: 16,
+                      }}
+                    />
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 600,
+                        color: theme.palette.primary.main,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      This Month
+                    </Typography>
+                  </Box>
+
+                  {renderStats()}
+                </Box>
+              )} */}
+            </>
           ) : (
-            renderListView()
+            <Box sx={{ flex: 1, minHeight: 0 }}>{renderListView()}</Box>
           )}
         </Box>
       </Box>
@@ -900,29 +1747,30 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
         TransitionProps={{
           direction: "up",
         }}
-        hideBackdrop={true} // Remove backdrop completely
+        hideBackdrop={true}
         sx={{
-          zIndex: 1000, // Below the bottom nav bar (which is 1100)
+          zIndex: 1000,
         }}
         PaperProps={{
           sx: {
             ...(isMobile && {
               position: "fixed",
-              top: dialogExpanded ? 64 : "50vh", // Account for top app bar (64px) when expanded
-              //bottom: 56, // Account for bottom navigation bar
+              top: dialogExpanded ? 64 : "50vh",
               m: 0,
               borderRadius: "16px 16px 0 0",
-              transition: "top 0.3s ease-in-out", // Smooth transition
+              transition: "top 0.3s ease-in-out",
             }),
           },
         }}
       >
+        {/* Gradient Header */}
         <Box
           sx={{
-            p: responsiveSpacing.modalPadding,
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
+            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+            color: "white",
+            p: 2,
+            pb: 1,
+            position: "relative",
           }}
         >
           {/* Drag Handle */}
@@ -935,13 +1783,10 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                 const currentY = e.touches[0].clientY;
                 const diff = dragStart - currentY;
 
-                // Swipe up to expand (diff > 50)
                 if (diff > 50 && !dialogExpanded) {
                   setDialogExpanded(true);
                   setDragStart(null);
-                }
-                // Swipe down to collapse (diff < -50)
-                else if (diff < -50 && dialogExpanded) {
+                } else if (diff < -50 && dialogExpanded) {
                   setDialogExpanded(false);
                   setDragStart(null);
                 }
@@ -952,7 +1797,6 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               width: "100%",
               display: "flex",
               justifyContent: "center",
-              py: 1,
               cursor: "grab",
               "&:active": {
                 cursor: "grabbing",
@@ -963,47 +1807,95 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
               sx={{
                 width: 40,
                 height: 4,
-                bgcolor: "divider",
+                bgcolor: "rgba(255, 255, 255, 0.3)",
                 borderRadius: 1,
               }}
             />
           </Box>
 
+          {/* Day and Controls */}
           <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
-              //mb: 2,
+              alignItems: "flex-start",
             }}
           >
-            <Typography variant="h3">
-              {currentMonth.toLocaleDateString("en-US", { month: "long" })}{" "}
-              {mobileSelectedDay?.day}
-            </Typography>
-            {user &&
-              userProfile?.clubId &&
-              !isPastDate(mobileSelectedDay?.day) &&
-              mobileSelectedDay?.events.length > 0 && (
-                <Button
-                  variant="none"
-                  startIcon={<Add />}
-                  onClick={() => {
-                    setShowDayEvents(false);
-                    onAddEvent(getSelectedDate(mobileSelectedDay.day));
-                  }}
-                  sx={{ color: theme.palette.primary.main }}
-                >
-                  Add Event
-                </Button>
-              )}
-            <IconButton onClick={() => setShowDayEvents(false)}>
-              <Close />
-            </IconButton>
-          </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  opacity: 0.9,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                }}
+              >
+                {new Date(
+                  currentMonth.getFullYear(),
+                  currentMonth.getMonth(),
+                  mobileSelectedDay?.day
+                )
+                  .toLocaleDateString("en-US", { weekday: "long" })
+                  .toUpperCase()}
+              </Typography>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 700,
+                  mt: 0.5,
+                }}
+              >
+                {currentMonth.toLocaleDateString("en-US", { month: "long" })}{" "}
+                {mobileSelectedDay?.day}
+              </Typography>
+            </Box>
 
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {user &&
+                userProfile?.clubId &&
+                !isPastDate(mobileSelectedDay?.day) &&
+                mobileSelectedDay?.events.length > 0 && (
+                  <IconButton
+                    onClick={() => {
+                      setShowDayEvents(false);
+                      onAddEvent(getSelectedDate(mobileSelectedDay.day));
+                    }}
+                    sx={{
+                      bgcolor: "rgba(255, 255, 255, 0.2)",
+                      color: "white",
+                      "&:hover": {
+                        bgcolor: "rgba(255, 255, 255, 0.3)",
+                      },
+                    }}
+                  >
+                    <Add />
+                  </IconButton>
+                )}
+              <IconButton
+                onClick={() => setShowDayEvents(false)}
+                sx={{ color: "white" }}
+              >
+                <Close />
+              </IconButton>
+            </Box>
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            p: 2,
+            height: dialogExpanded
+              ? "calc(100vh - 200px)"
+              : "calc(50vh - 140px)",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "auto",
+          }}
+        >
           {mobileSelectedDay?.events.length > 0 ? (
-            <>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {mobileSelectedDay.events.map((event) => (
                 <Card
                   key={event.id}
@@ -1012,60 +1904,237 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                     onEventClick(event);
                   }}
                   sx={{
-                    mb: 2,
                     cursor: "pointer",
-                    position: "relative",
-                    "&:hover": { bgcolor: "action.hover" },
+                    transition: "all 0.2s",
+                    border: "1px solid",
+                    borderColor: "rgba(0, 0, 0, 0.08)",
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: 2,
+                      borderColor: theme.palette.primary.main,
+                    },
                   }}
                 >
-                  <CardContent>
-                    {event.isRecurring && (
+                  <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "flex-start",
+                        alignItems: "center",
+                        gap: 1.5,
+                      }}
+                    >
+                      {/* Time Badge */}
                       <Box
                         sx={{
-                          position: "absolute",
-                          top: 12,
-                          right: 12,
-                          fontSize: "1.25rem",
-                          opacity: 0.6,
-                          color: "#6b7280",
+                          minWidth: 80,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          bgcolor: "rgba(99, 102, 241, 0.1)",
+                          borderRadius: 1.5,
+                          p: 2,
+                          border: "1px solid",
+                          borderColor: "rgba(99, 102, 241, 0.2)",
                         }}
                       >
-                        <Repeat />
+                        <Schedule
+                          sx={{
+                            fontSize: 24,
+                            color: theme.palette.primary.main,
+                            mb: 1,
+                          }}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: "0.85rem",
+                            fontWeight: 600,
+                            color: theme.palette.primary.main,
+                            textAlign: "center",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {event.date.toLocaleTimeString("en-US", {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </Typography>
                       </Box>
-                    )}
-                    <Typography variant="caption" color="text.secondary">
-                      {event.date.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Typography>
-                    <Typography variant="h3" gutterBottom>
-                      {event.name}
-                    </Typography>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Chip
-                        icon={<LocationOn />}
-                        label={event.location}
-                        size="small"
-                      />
-                      <Chip
-                        icon={<DirectionsRun />}
-                        label={event.distance}
-                        size="small"
-                      />
+
+                      {/* Event Details */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            justifyContent: "space-between",
+                            mb: 0.5,
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: "1rem",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              flex: 1,
+                            }}
+                          >
+                            {event.name}
+                          </Typography>
+                          <Box sx={{ display: "flex", gap: 0.5, ml: 1 }}>
+                            {userProfile?.wishlist?.includes(event.id) && (
+                              <Favorite
+                                sx={{
+                                  fontSize: 18,
+                                  color: "#f43f5e",
+                                }}
+                              />
+                            )}
+                            {event.isRecurring && (
+                              <Repeat
+                                sx={{
+                                  fontSize: 18,
+                                  color: "text.secondary",
+                                }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 0.5,
+                            mb: 1,
+                          }}
+                        >
+                          {event.location && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
+                              <LocationOn
+                                sx={{ fontSize: 16, color: "text.secondary" }}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "text.secondary",
+                                  fontSize: "0.875rem",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {event.location}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          {event.activityType && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
+                              <DirectionsRun
+                                sx={{ fontSize: 16, color: "text.secondary" }}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "text.secondary",
+                                  fontSize: "0.875rem",
+                                }}
+                              >
+                                {event.activityType}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+
+                        {/* Bottom Info */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            bgcolor: "rgba(16, 185, 129, 0.08)",
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                            width: "fit-content",
+                          }}
+                        >
+                          <People
+                            sx={{
+                              fontSize: 14,
+                              color: "#10B981",
+                            }}
+                          />
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 600,
+                              color: "#10B981",
+                              fontSize: "0.75rem",
+                            }}
+                          >
+                            {event.attendees?.length || 0} attending
+                          </Typography>
+                        </Box>
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>
               ))}
-            </>
+            </Box>
           ) : (
-            <Box sx={{ textAlign: "center", py: 2 }}>
-              <CalendarToday
-                sx={{ fontSize: 48, color: "text.disabled", mb: 2 }}
-              />
-              <Typography color="text.secondary" gutterBottom>
-                No events scheduled for this day
+            <Box
+              sx={{
+                textAlign: "center",
+                py: 3,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+              }}
+            >
+              <Box
+                sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: "50%",
+                  bgcolor: "rgba(16, 185, 129, 0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mb: 1,
+                }}
+              >
+                <CalendarToday
+                  sx={{ fontSize: 32, color: theme.palette.primary.main }}
+                />
+              </Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                No events scheduled
               </Typography>
+              {/* <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                This day is free
+              </Typography> */}
               {user &&
                 userProfile?.clubId &&
                 !isPastDate(mobileSelectedDay?.day) && (
@@ -1076,20 +2145,53 @@ function EventCalendar({ onEventClick, user, onAddEvent }) {
                       setShowDayEvents(false);
                       onAddEvent(getSelectedDate(mobileSelectedDay.day));
                     }}
-                    sx={{ mt: 2 }}
+                    sx={{
+                      bgcolor: theme.palette.primary.main,
+                      "&:hover": {
+                        bgcolor: theme.palette.primary.dark,
+                      },
+                    }}
                   >
-                    Create an Event
+                    Create Event
                   </Button>
                 )}
               {user && isPastDate(mobileSelectedDay?.day) && (
-                <Typography color="error" variant="body2" sx={{ mt: 2 }}>
-                  Cannot add event to a past date
-                </Typography>
+                <Box
+                  sx={{
+                    bgcolor: "rgba(239, 68, 68, 0.08)",
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1,
+                    border: "1px solid",
+                    borderColor: "rgba(239, 68, 68, 0.2)",
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "error.main",
+                      fontWeight: 500,
+                      fontSize: "0.875rem",
+                    }}
+                  >
+                    Cannot add events to past dates
+                  </Typography>
+                </Box>
               )}
             </Box>
           )}
         </Box>
       </Dialog>
+
+      {/* Stats Events Dialog */}
+      <EventStats
+        open={statsDialogOpen}
+        onClose={handleStatsDialogClose}
+        statType={selectedStatType}
+        events={getStatEvents(selectedStatType)}
+        currentMonth={currentMonth}
+        onEventClick={onEventClick}
+      />
     </Box>
   );
 }

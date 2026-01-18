@@ -346,7 +346,7 @@ function ClubPanel({ user, clubId, userRole }) {
                   fontSize: { xs: "1.5rem", md: "2.125rem" },
                 }}
               >
-                Club
+                {clubData?.name || "Club Panel"}
               </Typography>
               <Typography variant="body2">
                 View your club members and details

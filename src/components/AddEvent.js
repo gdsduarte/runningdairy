@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { createEvent } from "../services";
 import {
   Box,
-  Modal,
+  Dialog,
+  DialogContent,
   Typography,
   TextField,
   Button,
@@ -17,10 +18,15 @@ import {
   FormControlLabel,
   Switch,
   Divider,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
-import { Close, CalendarToday, Repeat } from "@mui/icons-material";
+import { Close, CalendarToday, Repeat, Add } from "@mui/icons-material";
 
 function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   // Format the selected date or use today
   const defaultDate = selectedDate || new Date();
   const dateString = defaultDate.toISOString().split("T")[0];
@@ -72,19 +78,32 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
         date: eventDateTime,
         attendees: [],
         isRecurring: eventData.isRecurring,
-        recurringPattern: eventData.isRecurring ? eventData.recurringPattern : null,
-        recurringEndDate: eventData.isRecurring ? eventData.recurringEndDate : null,
+        recurringPattern: eventData.isRecurring
+          ? eventData.recurringPattern
+          : null,
+        recurringEndDate: eventData.isRecurring
+          ? eventData.recurringEndDate
+          : null,
       };
 
       // If it's a recurring event, create multiple instances
-      if (eventData.isRecurring && eventData.recurringPattern && eventData.recurringEndDate) {
+      if (
+        eventData.isRecurring &&
+        eventData.recurringPattern &&
+        eventData.recurringEndDate
+      ) {
         const endDate = new Date(eventData.recurringEndDate);
         endDate.setHours(23, 59, 59, 999); // Set to end of day
         const eventsToCreate = [];
         let currentDate = new Date(eventDateTime);
 
-        console.log('Creating recurring events from', currentDate, 'to', endDate);
-        console.log('Pattern:', eventData.recurringPattern);
+        console.log(
+          "Creating recurring events from",
+          currentDate,
+          "to",
+          endDate
+        );
+        console.log("Pattern:", eventData.recurringPattern);
 
         // Generate recurring events
         while (currentDate <= endDate) {
@@ -95,19 +114,19 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
 
           // Calculate next occurrence based on pattern
           const pattern = eventData.recurringPattern;
-          
-          if (pattern === 'daily') {
+
+          if (pattern === "daily") {
             currentDate.setDate(currentDate.getDate() + 1);
-          } else if (pattern.startsWith('weekly-')) {
+          } else if (pattern.startsWith("weekly-")) {
             // For specific day patterns (weekly-monday, etc.)
             currentDate.setDate(currentDate.getDate() + 7);
-          } else if (pattern === 'biweekly') {
+          } else if (pattern === "biweekly") {
             currentDate.setDate(currentDate.getDate() + 14);
-          } else if (pattern === 'monthly') {
+          } else if (pattern === "monthly") {
             currentDate.setMonth(currentDate.getMonth() + 1);
           } else {
             // Unknown pattern, exit loop
-            console.warn('Unknown pattern:', pattern);
+            console.warn("Unknown pattern:", pattern);
             break;
           }
         }
@@ -116,21 +135,31 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
 
         // Create all recurring events
         const results = await Promise.all(
-          eventsToCreate.map(event => createEvent(event, user.uid, user.email, userProfile?.clubId))
+          eventsToCreate.map((event) =>
+            createEvent(event, user.uid, user.email, userProfile?.clubId)
+          )
         );
 
-        const hasError = results.some(r => !r.success);
+        const hasError = results.some((r) => !r.success);
         if (hasError) {
           setError("Some events failed to create. Please try again.");
-          console.error('Some events failed:', results.filter(r => !r.success));
+          console.error(
+            "Some events failed:",
+            results.filter((r) => !r.success)
+          );
         } else {
-          console.log('All recurring events created successfully');
+          console.log("All recurring events created successfully");
           onEventAdded?.();
           onClose();
         }
       } else {
         // Single event creation
-        const result = await createEvent(newEvent, user.uid, user.email, userProfile?.clubId);
+        const result = await createEvent(
+          newEvent,
+          user.uid,
+          user.email,
+          userProfile?.clubId
+        );
 
         if (result.success) {
           onEventAdded?.();
@@ -148,68 +177,56 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
   };
 
   return (
-    <Modal
+    <Dialog
       open={true}
       onClose={onClose}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        p: 2,
+      fullScreen={isMobile}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: isMobile ? 0 : 2,
+          maxHeight: isMobile ? "100%" : "90vh",
+        },
       }}
     >
+      {/* Header */}
       <Box
         sx={{
-          bgcolor: "background.paper",
-          borderRadius: 1,
-          boxShadow: 24,
-          maxWidth: 800,
-          width: "100%",
-          maxHeight: "90vh",
-          overflow: "hidden",
+          background: (theme) =>
+            `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+          color: "white",
+          p: isMobile ? 2 : 3,
           display: "flex",
-          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
-        {/* Header */}
-        <Box
-          sx={{
-            bgcolor: "#6366f1",
-            color: "white",
-            p: 3,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <CalendarToday sx={{ fontSize: 28 }} />
-            <Typography variant="h5" sx={{ color: "white", fontWeight: 600 }}>
-              Add Running Event
-            </Typography>
-          </Box>
-          <IconButton
-            onClick={onClose}
-            sx={{
-              color: "white",
-              bgcolor: "rgba(255,255,255,0.1)",
-              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
-            }}
-          >
-            <Close />
-          </IconButton>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Add sx={{ fontSize: 28 }} />
+          <Typography variant={isMobile ? "h6" : "h5"} sx={{ fontWeight: 600 }}>
+            Add Running Event
+          </Typography>
         </Box>
-
-        {/* Form */}
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
+        <IconButton
+          onClick={onClose}
           sx={{
-            p: 3,
-            overflowY: "auto",
-            flex: 1,
+            color: "white",
+            bgcolor: "rgba(255,255,255,0.1)",
+            "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
           }}
         >
+          <Close />
+        </IconButton>
+      </Box>
+
+      {/* Form */}
+      <DialogContent
+        sx={{
+          p: isMobile ? 2 : 3,
+        }}
+      >
+        <Box component="form" onSubmit={handleSubmit}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {/* Event Information Section */}
             <Box>
@@ -227,7 +244,7 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
               <Divider sx={{ mb: 2.5 }} />
 
               <Grid container spacing={2}>
-                <Grid item size={{xs:12, md:4}}>
+                <Grid item size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     required
@@ -239,7 +256,7 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
                   />
                 </Grid>
 
-                <Grid item size={{xs:12, md:4}}>
+                <Grid item size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     required
@@ -251,7 +268,7 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
                   />
                 </Grid>
 
-                <Grid item size={{xs:12, md:4}}>
+                <Grid item size={{ xs: 12, md: 4 }}>
                   <FormControl fullWidth required>
                     <InputLabel>Distance</InputLabel>
                     <Select
@@ -271,7 +288,7 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
                   </FormControl>
                 </Grid>
 
-                <Grid item size={{xs:12}}>
+                <Grid item size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     multiline
@@ -302,7 +319,7 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
               <Divider sx={{ mb: 2.5 }} />
 
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid item size={{ xs: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     required
@@ -312,11 +329,13 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
                     value={eventData.date}
                     onChange={handleChange}
                     InputLabelProps={{ shrink: true }}
-                    inputProps={{ min: new Date().toISOString().split("T")[0] }}
+                    inputProps={{
+                      min: new Date().toISOString().split("T")[0],
+                    }}
                   />
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid item size={{ xs: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     required
@@ -330,105 +349,116 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
                 </Grid>
 
                 {/* Recurring Event Section */}
-                <Grid item xs={12}>
+                <Grid item size={{ xs: 12, md: 4 }}>
                   <FormControlLabel
-                control={
-                  <Switch
-                    checked={eventData.isRecurring}
-                    onChange={(e) =>
-                      setEventData((prev) => ({
-                        ...prev,
-                        isRecurring: e.target.checked,
-                        recurringPattern: e.target.checked
-                          ? prev.recurringPattern
-                          : "",
-                        recurringEndDate: e.target.checked
-                          ? prev.recurringEndDate
-                          : "",
-                      }))
+                    labelPlacement={isMobile ? "end" : "top"}
+                    control={
+                      <Switch
+                        checked={eventData.isRecurring}
+                        onChange={(e) =>
+                          setEventData((prev) => ({
+                            ...prev,
+                            isRecurring: e.target.checked,
+                            recurringPattern: e.target.checked
+                              ? prev.recurringPattern
+                              : "",
+                            recurringEndDate: e.target.checked
+                              ? prev.recurringEndDate
+                              : "",
+                          }))
+                        }
+                        sx={{
+                          "& .MuiSwitch-switchBase.Mui-checked": {
+                            color: "#10B981",
+                          },
+                          "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                            {
+                              backgroundColor: "#10B981",
+                            },
+                        }}
+                      />
                     }
-                    sx={{
-                      "& .MuiSwitch-switchBase.Mui-checked": {
-                        color: "#10B981",
-                      },
-                      "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
-                        {
-                          backgroundColor: "#10B981",
-                        },
-                    }}
-                  />
-                }
-                label={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Repeat
-                      sx={{
-                        fontSize: 20,
-                        color: eventData.isRecurring
-                          ? "#10B981"
-                          : "action.disabled",
-                      }}
-                    />
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      Recurring Event
-                    </Typography>
-                  </Box>
-                }
+                    label={
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <Repeat
+                          sx={{
+                            fontSize: 20,
+                            color: eventData.isRecurring
+                              ? "#10B981"
+                              : "action.disabled",
+                          }}
+                        />
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          Recurring
+                        </Typography>
+                      </Box>
+                    }
                   />
                 </Grid>
 
                 {eventData.isRecurring && (
                   <>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Repeat Pattern</InputLabel>
-                    <Select
-                      name="recurringPattern"
-                      value={eventData.recurringPattern}
-                      onChange={handleChange}
-                      label="Repeat Pattern"
-                    >
-                      <MenuItem value="">Select pattern...</MenuItem>
-                      <MenuItem value="daily">Every Day</MenuItem>
-                      <MenuItem value="weekly-monday">Every Monday</MenuItem>
-                      <MenuItem value="weekly-tuesday">Every Tuesday</MenuItem>
-                      <MenuItem value="weekly-wednesday">
-                        Every Wednesday
-                      </MenuItem>
-                      <MenuItem value="weekly-thursday">
-                        Every Thursday
-                      </MenuItem>
-                      <MenuItem value="weekly-friday">Every Friday</MenuItem>
-                      <MenuItem value="weekly-saturday">
-                        Every Saturday
-                      </MenuItem>
-                      <MenuItem value="weekly-sunday">Every Sunday</MenuItem>
-                      <MenuItem value="biweekly">Every 2 Weeks</MenuItem>
-                      <MenuItem value="monthly">Every Month</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
+                    <Grid item size={{ xs: 6, md: 4 }}>
+                      <FormControl fullWidth required>
+                        <InputLabel>Repeat Pattern</InputLabel>
+                        <Select
+                          name="recurringPattern"
+                          value={eventData.recurringPattern}
+                          onChange={handleChange}
+                          label="Repeat Pattern"
+                        >
+                          <MenuItem value="">Select pattern...</MenuItem>
+                          <MenuItem value="daily">Every Day</MenuItem>
+                          <MenuItem value="weekly-monday">
+                            Every Monday
+                          </MenuItem>
+                          <MenuItem value="weekly-tuesday">
+                            Every Tuesday
+                          </MenuItem>
+                          <MenuItem value="weekly-wednesday">
+                            Every Wednesday
+                          </MenuItem>
+                          <MenuItem value="weekly-thursday">
+                            Every Thursday
+                          </MenuItem>
+                          <MenuItem value="weekly-friday">
+                            Every Friday
+                          </MenuItem>
+                          <MenuItem value="weekly-saturday">
+                            Every Saturday
+                          </MenuItem>
+                          <MenuItem value="weekly-sunday">
+                            Every Sunday
+                          </MenuItem>
+                          <MenuItem value="biweekly">Every 2 Weeks</MenuItem>
+                          <MenuItem value="monthly">Every Month</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
 
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    required
-                    type="date"
-                    label="End Date"
-                    name="recurringEndDate"
-                    value={eventData.recurringEndDate}
-                    onChange={handleChange}
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ min: eventData.date }}
-                    helperText="Last occurrence date"
-                  />
-                </Grid>
+                    <Grid item size={{ xs: 6, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        required
+                        type="date"
+                        label="End Date"
+                        name="recurringEndDate"
+                        value={eventData.recurringEndDate}
+                        onChange={handleChange}
+                        InputLabelProps={{ shrink: true }}
+                        inputProps={{ min: eventData.date }}
+                        helperText="Last occurrence date"
+                      />
+                    </Grid>
 
-                <Grid item xs={12}>
-                  <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
-                    This will create multiple event instances based on the
-                    pattern until the end date.
-                  </Alert>
-                </Grid>
+                    <Grid item size={12}>
+                      <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
+                        This will create multiple event instances based on the
+                        pattern until the end date.
+                      </Alert>
+                    </Grid>
                   </>
                 )}
               </Grid>
@@ -450,7 +480,7 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
               <Divider sx={{ mb: 2.5 }} />
 
               <Grid container spacing={2}>
-                <Grid item xs={12}>
+                <Grid item size={12}>
                   <TextField
                     fullWidth
                     type="url"
@@ -470,56 +500,63 @@ function AddEvent({ onClose, onEventAdded, user, userProfile, selectedDate }) {
               {error}
             </Alert>
           )}
-
-          {/* Action Buttons */}
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              mt: 3,
-              pt: 2,
-              borderTop: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={onClose}
-              disabled={loading}
-              sx={{
-                color: "#6B7280",
-                borderColor: "#D1D5DB",
-                "&:hover": {
-                  borderColor: "#9CA3AF",
-                  bgcolor: "#F9FAFB",
-                },
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              disabled={loading}
-              sx={{
-                bgcolor: "#6366f1",
-                "&:hover": {
-                  bgcolor: "#4F46E5",
-                },
-              }}
-            >
-              {loading ? (
-                <CircularProgress size={24} sx={{ color: "white" }} />
-              ) : (
-                "Create Event"
-              )}
-            </Button>
-          </Box>
         </Box>
+      </DialogContent>
+      {/* Action Buttons */}
+      <Box
+        sx={{
+          borderTop: 1,
+          borderColor: "divider",
+          p: 2,
+          bgcolor: "background.paper",
+          display: "flex",
+          gap: 2,
+        }}
+      >
+        <Button
+          variant="outlined"
+          fullWidth
+          onClick={onClose}
+          disabled={loading}
+          sx={{
+            borderRadius: 1,
+            py: 1.5,
+            textTransform: "none",
+            fontWeight: 600,
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          variant="contained"
+          fullWidth
+          disabled={
+            loading ||
+            !eventData.name ||
+            !eventData.location ||
+            !eventData.distance ||
+            !eventData.date ||
+            !eventData.time ||
+            (eventData.isRecurring &&
+              (!eventData.recurringPattern || !eventData.recurringEndDate))
+          }
+          onClick={handleSubmit}
+          sx={{
+            borderRadius: 1,
+            py: 1.5,
+            textTransform: "none",
+            fontWeight: 600,
+          }}
+        >
+          {loading ? (
+            <CircularProgress size={24} sx={{ color: "white" }} />
+          ) : (
+            "Create Event"
+          )}
+        </Button>
       </Box>
-    </Modal>
+    </Dialog>
   );
 }
 

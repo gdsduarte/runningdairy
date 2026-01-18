@@ -15,6 +15,8 @@ import {
   DirectionsRun,
   Schedule,
   CheckCircle,
+  Favorite,
+  CalendarToday,
 } from "@mui/icons-material";
 
 // Helper function to convert distance values to kilometers
@@ -41,9 +43,10 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
   // State for selected month in activity bars
   const [selectedMonthStats, setSelectedMonthStats] = useState(null);
 
-  // Get events from Redux store
+  // Get events and userProfile from Redux store
   const events = useSelector((state) => state.events.list);
   const loading = useSelector((state) => state.events.loading);
+  const userProfile = useSelector((state) => state.user.profile);
 
   // Use current date directly for dashboard display (not dependent on calendar navigation)
   const currentDate = new Date();
@@ -92,6 +95,12 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
 
   const myCreatedEvents = selectedMonthEvents.filter(
     (event) => event.createdBy === user.uid && event.date >= now
+  );
+
+  // Get wishlisted events (all upcoming events in wishlist)
+  const wishlistEventIds = userProfile?.wishlist || [];
+  const wishlistEvents = allUpcomingEvents.filter((event) =>
+    wishlistEventIds.includes(event.id)
   );
 
   // Get next 3 upcoming events from selected month (non-recurring)
@@ -1272,7 +1281,7 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                   pb: 16,
                 }), }}
           >
-            {/* Recent Activity Card */}
+            {/* Wishlist Card */}
             <Card
               sx={{
                 mb: 2,
@@ -1293,18 +1302,21 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                     mb: 2,
                   }}
                 >
-                  <Typography
-                    variant="h3"
-                    sx={{
-                      fontSize: "0.938rem",
-                      fontWeight: 600,
-                      color: "#9ca3af",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    Recent Activity
-                  </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Favorite sx={{ color: "#f43f5e", fontSize: 20 }} />
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        fontSize: "0.938rem",
+                        fontWeight: 600,
+                        color: "#9ca3af",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      My Wishlist
+                    </Typography>
+                  </Box>
                   <Box
                     sx={{ fontSize: 16, color: "#9ca3af", cursor: "pointer" }}
                   >
@@ -1312,81 +1324,136 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                   </Box>
                 </Box>
 
-                {myUpcomingEvents.length > 0 ? (
+                {wishlistEvents.length > 0 ? (
                   <Box
                     sx={{ display: "flex", flexDirection: "column", gap: 2 }}
                   >
-                    {myUpcomingEvents.slice(0, 2).map((event) => (
+                    {wishlistEvents.slice(0, 3).map((event) => (
                       <Box
                         key={event.id}
+                        onClick={() => onEventClick(event)}
                         sx={{
                           display: "flex",
                           gap: 1.5,
                           alignItems: "flex-start",
+                          cursor: "pointer",
+                          p: 1.5,
+                          borderRadius: 1,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          transition: "all 0.2s",
+                          "&:hover": {
+                            bgcolor: "#f9fafb",
+                            borderColor: "#f43f5e",
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 4px 12px rgba(244, 63, 94, 0.1)",
+                          },
                         }}
                       >
                         <Box
                           sx={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            bgcolor: "#6366f1",
+                            width: 48,
+                            height: 48,
+                            borderRadius: 1,
+                            bgcolor: "#fef2f2",
+                            border: "2px solid #fecdd3",
                             display: "flex",
+                            flexDirection: "column",
                             alignItems: "center",
                             justifyContent: "center",
                             flexShrink: 0,
                           }}
                         >
-                          <Box sx={{ fontSize: 16, color: "white" }}>👤</Box>
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography
-                            sx={{
-                              fontSize: "0.813rem",
-                              fontWeight: 600,
-                              color: "#1f2937",
-                              mb: 0.3,
-                            }}
-                          >
-                            You joined this event
-                          </Typography>
                           <Typography
                             sx={{
                               fontSize: "0.75rem",
-                              color: "#9ca3af",
-                              mb: 0.8,
+                              fontWeight: 600,
+                              color: "#f43f5e",
+                              lineHeight: 1,
+                            }}
+                          >
+                            {event.date.toLocaleDateString("en-US", {
+                              month: "short",
+                            })}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: "1.125rem",
+                              fontWeight: 700,
+                              color: "#991b1b",
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {event.date.getDate()}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography
+                            sx={{
+                              fontSize: "0.875rem",
+                              fontWeight: 600,
+                              color: "#1f2937",
+                              mb: 0.5,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
                             }}
                           >
                             {event.name}
                           </Typography>
-                          <Box sx={{ display: "flex", gap: 1 }}>
-                            <Box
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 1,
+                              alignItems: "center",
+                              mb: 0.5,
+                            }}
+                          >
+                            <LocationOn
+                              sx={{ fontSize: 14, color: "#9ca3af" }}
+                            />
+                            <Typography
                               sx={{
-                                px: 1.5,
-                                py: 0.5,
-                                bgcolor: "#dbeafe",
-                                color: "#1e40af",
-                                borderRadius: 1,
-                                fontSize: "0.688rem",
-                                fontWeight: 500,
-                                cursor: "pointer",
+                                fontSize: "0.75rem",
+                                color: "#6b7280",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
                               }}
                             >
-                              View
+                              {event.location}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: "flex", gap: 1, mt: 0.8 }}>
+                            <Box
+                              sx={{
+                                px: 1,
+                                py: 0.3,
+                                bgcolor: "#dbeafe",
+                                color: "#1e40af",
+                                borderRadius: 0.5,
+                                fontSize: "0.688rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {event.distance}
                             </Box>
                             <Box
                               sx={{
-                                px: 1.5,
-                                py: 0.5,
-                                bgcolor: "#10B981",
-                                color: "white",
-                                borderRadius: 1,
+                                px: 1,
+                                py: 0.3,
+                                bgcolor: "#fef2f2",
+                                color: "#f43f5e",
+                                borderRadius: 0.5,
                                 fontSize: "0.688rem",
-                                fontWeight: 500,
-                                cursor: "pointer",
+                                fontWeight: 600,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
                               }}
                             >
-                              Confirmed
+                              <Favorite sx={{ fontSize: 12 }} />
+                              Saved
                             </Box>
                           </Box>
                         </Box>
@@ -1395,9 +1462,21 @@ function Dashboard({ user, onEventClick, onAddEvent }) {
                   </Box>
                 ) : (
                   <Box sx={{ textAlign: "center", py: 3 }}>
-                    <Box sx={{ fontSize: 32, mb: 1, opacity: 0.3 }}>💬</Box>
-                    <Typography sx={{ fontSize: "0.813rem", color: "#9ca3af" }}>
-                      No recent activity
+                    <Favorite
+                      sx={{ fontSize: 48, color: "#fecdd3", mb: 1 }}
+                    />
+                    <Typography
+                      sx={{
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                        color: "#6b7280",
+                        mb: 0.5,
+                      }}
+                    >
+                      No events in wishlist
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+                      Tap the heart icon on events to save them here
                     </Typography>
                   </Box>
                 )}
